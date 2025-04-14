@@ -1,6 +1,18 @@
 import { useState } from 'react';
 import './App.css';
 
+
+
+/// WorkList
+/// 4. Componentize the code bellow
+/// 3. Change the code from valid and invalid to translating the
+/// sting into text
+/// 1. Add tailwind
+/// 2. Start a database and a express server to send data
+/// 5. host a database
+
+
+
 interface DataItem {
   key: number;  // 1 for valid, 0 for invalid
   text: string; // Expression to be judged
