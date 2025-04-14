@@ -4,10 +4,7 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
-const test_env = process.env.REACT_TEST || "Didn't work";
 
-console.log(test_env);
-console.log("TES");
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
