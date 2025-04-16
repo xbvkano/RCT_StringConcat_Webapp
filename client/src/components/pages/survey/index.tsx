@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PageKey, PAGES, SurveyData } from './../../../App';
+import { ProgrammingLanguageMap, ProgrammingLanguageKey }  from './../../../../../shared/languageOptions';
 
 interface SurveyPageProps {
   setPage: (page: PageKey) => void;
@@ -112,13 +113,9 @@ const SurveyPage: React.FC<SurveyPageProps> = ({ setPage, surveyData, setSurveyD
             className={`w-full px-4 py-2 rounded bg-gray-800 text-white border ${getFieldClass('language')}`}
           >
             <option value="">Select</option>
-            <option>C++</option>
-            <option>Java</option>
-            <option>C#</option>
-            <option>JS</option>
-            <option>TS</option>
-            <option>Python</option>
-            <option>Other</option>
+            {Object.entries(ProgrammingLanguageMap).map(([key, label]) => (
+              <option key={key} value={label}>{label}</option>
+            ))}
           </select>
         </div>
 

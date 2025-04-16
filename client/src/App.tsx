@@ -7,6 +7,8 @@ import NotFoundPage from './components/pages/notFound';
 import TrainingPage from './components/pages/training';
 import ExperimentPage from './components/pages/experiment';
 import ThankYouPageProps from './components/pages/thankyou';
+import { ProgrammingLanguage } from './../../shared/languageOptions';
+
 
 export const PAGES = {
   landing: 'landing',
@@ -23,7 +25,7 @@ export interface SurveyData {
   yearsProgramming: string;
   age: string;
   sex: string;
-  language: string;
+  language: ProgrammingLanguage | '';
   email: string;
 }
 
