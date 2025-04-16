@@ -1,5 +1,5 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy React App to GitHub Pages
+# .github/workflows/deploy.yml
+name: Deploy Vite App to GitHub Pages
 
 on:
   push:
@@ -28,13 +28,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18  # or your preferred Node.js version
+          node-version: 18
 
       - name: Install dependencies
         run: npm install
         working-directory: ./client
 
-      - name: Build React App
+      - name: Build Vite App
         run: npm run build
         working-directory: ./client
 
@@ -44,7 +44,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./client/build  # this is the folder CRA builds to
+          path: ./client/dist  # Vite builds to dist
 
       - name: Deploy to GitHub Pages
         id: deployment
