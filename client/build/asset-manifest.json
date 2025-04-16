@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/RCT_StringConcat_Webapp/static/css/main.a25d67df.css",
+    "main.js": "/RCT_StringConcat_Webapp/static/js/main.afea7726.js",
+    "static/js/453.ed3810f9.chunk.js": "/RCT_StringConcat_Webapp/static/js/453.ed3810f9.chunk.js",
+    "index.html": "/RCT_StringConcat_Webapp/index.html",
+    "main.a25d67df.css.map": "/RCT_StringConcat_Webapp/static/css/main.a25d67df.css.map",
+    "main.afea7726.js.map": "/RCT_StringConcat_Webapp/static/js/main.afea7726.js.map",
+    "453.ed3810f9.chunk.js.map": "/RCT_StringConcat_Webapp/static/js/453.ed3810f9.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.a25d67df.css",
+    "static/js/main.afea7726.js"
+  ]
+}

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useState } from 'react';
 import { PageKey, PAGES } from './../../../App';
 
 export const group: 'groupA' | 'groupB' = 'groupA';
