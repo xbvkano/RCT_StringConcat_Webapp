@@ -1,0 +1,37 @@
+enum ProgrammingLanguage {
+  cpp
+  java
+  csharp
+  js
+  ts
+  python
+  other
+}
+
+enum Sex {
+  male
+  female
+  other
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Marcos_Data {
+  id               Int                 @id @default(autoincrement())
+  yearsProgramming Int
+  age              Int
+  sex              Sex
+  language         ProgrammingLanguage
+  email            String?             // optional
+  accuracy         Float
+  time             DateTime
+  created_at       DateTime             @default(now())
+}
