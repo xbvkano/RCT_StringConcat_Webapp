@@ -1,37 +1,47 @@
-import React, { useEffect } from 'react';
+// src/components/pages/thankyou.tsx
+import React, { useEffect, useRef } from 'react';
 import axios from 'axios';
 import { PageKey, SurveyData, PAGES } from './../../../App';
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
-
 interface ThankYouPageProps {
   setPage: (page: PageKey) => void;
   surveyData: SurveyData;
+  clearSurveyData: () => void;    // ← we’ll add this
 }
 
-const ThankYouPage: React.FC<ThankYouPageProps> = ({ setPage, surveyData }) => {
+const ThankYouPage: React.FC<ThankYouPageProps> = ({
+  setPage,
+  surveyData,
+  clearSurveyData,
+}) => {
+  const didSend = useRef(false);
+
   useEffect(() => {
-    const sendSurveyData = async () => {
+    if (didSend.current) return;
+    didSend.current = true;
+
+    (async () => {
       try {
         await axios.post(`${apiUrl}/marcos`, {
           yearsProgramming: surveyData.yearsProgramming,
-          age: surveyData.age,
-          sex: surveyData.sex,
-          language: surveyData.language,
-          email: surveyData.email,
-          accuracy: surveyData.accuracy,
-          task_accuracy: surveyData.test_accuracy,
-          time: surveyData.time,
+          age:                 surveyData.age,
+          sex:                 surveyData.sex,
+          language:            surveyData.language,
+          email:               surveyData.email,
+          accuracy:            surveyData.accuracy,
+          task_accuracy:       surveyData.test_accuracy,
+          time:                surveyData.time,
         });
         console.log('✅ Survey data successfully submitted');
       } catch (error) {
         console.error('❌ Error submitting survey data:', error);
+      } finally {
+        clearSurveyData();
       }
-    };
-
-    sendSurveyData();
-  }, [surveyData]);
+    })();
+  }, []);  // ← only on mount, plus our ref guard covers StrictMode
 
   return (
     <div className="flex flex-col items-center justify-center w-full px-6 py-10">

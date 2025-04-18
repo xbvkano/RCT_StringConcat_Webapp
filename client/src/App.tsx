@@ -83,6 +83,15 @@ function App() {
           <ThankYouPage
             setPage={setPage}
             surveyData={surveyDataRef.current}
+            clearSurveyData={() => {
+              surveyDataRef.current = {
+                yearsProgramming: '',
+                age:               '',
+                sex:               '',
+                language:          '',
+                email:             '',
+              };
+            }}
           />
         );
       default:
