@@ -31,6 +31,7 @@ model Marcos_Data {
   language         ProgrammingLanguage
   email            String?             // optional
   accuracy         Float
+  task_accuracy    Float[]
   time             DateTime
   created_at       DateTime             @default(now())
 }

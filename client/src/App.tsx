@@ -6,7 +6,7 @@ import SurveyPage from './components/pages/survey';
 import NotFoundPage from './components/pages/notFound';
 import TrainingPage from './components/pages/training';
 import ExperimentPage from './components/pages/experiment';
-import ThankYouPageProps from './components/pages/thankyou';
+import ThankYouPage from './components/pages/thankyou';
 import { ProgrammingLanguage } from './../../shared/languageOptions';
 
 
@@ -27,6 +27,9 @@ export interface SurveyData {
   sex: string;
   language: ProgrammingLanguage | '';
   email: string;
+  accuracy?: number;
+  test_accuracy?: number[];
+  time?: Date;
 }
 
 function App() {
@@ -65,10 +68,23 @@ function App() {
           <ExperimentPage
             setPage={setPage}
             experimentDataRef={experimentDataRef}
+            setSurveyMetrics={({ accuracy, test_accuracy, time }) => {
+              surveyDataRef.current = {
+                ...surveyDataRef.current,
+                accuracy,
+                test_accuracy,
+                time,
+              };
+            }}
           />
         );
       case PAGES.thankyou:
-        return <ThankYouPageProps setPage={setPage} />;
+        return (
+          <ThankYouPage
+            setPage={setPage}
+            surveyData={surveyDataRef.current}
+          />
+        );
       default:
         return <NotFoundPage setPage={setPage} />;
     }

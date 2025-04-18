@@ -1,11 +1,38 @@
-import React from 'react';
-import { PageKey, PAGES } from './../../../App';
+import React, { useEffect } from 'react';
+import axios from 'axios';
+import { PageKey, SurveyData, PAGES } from './../../../App';
+
+const apiUrl = import.meta.env.VITE_API_URL;
+
 
 interface ThankYouPageProps {
   setPage: (page: PageKey) => void;
+  surveyData: SurveyData;
 }
 
-const ThankYouPage: React.FC<ThankYouPageProps> = ({ setPage }) => {
+const ThankYouPage: React.FC<ThankYouPageProps> = ({ setPage, surveyData }) => {
+  useEffect(() => {
+    const sendSurveyData = async () => {
+      try {
+        await axios.post(`${apiUrl}/marcos`, {
+          yearsProgramming: surveyData.yearsProgramming,
+          age: surveyData.age,
+          sex: surveyData.sex,
+          language: surveyData.language,
+          email: surveyData.email,
+          accuracy: surveyData.accuracy,
+          task_accuracy: surveyData.test_accuracy,
+          time: surveyData.time,
+        });
+        console.log('✅ Survey data successfully submitted');
+      } catch (error) {
+        console.error('❌ Error submitting survey data:', error);
+      }
+    };
+
+    sendSurveyData();
+  }, [surveyData]);
+
   return (
     <div className="flex flex-col items-center justify-center w-full px-6 py-10">
       <h1 className="text-4xl font-extrabold text-white text-center mb-6">

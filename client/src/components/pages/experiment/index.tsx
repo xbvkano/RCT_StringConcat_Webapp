@@ -35,11 +35,17 @@ const experimentQuestions = {
 interface ExperimentPageProps {
   setPage: (page: PageKey) => void;
   experimentDataRef: React.MutableRefObject<string[]>;
+  setSurveyMetrics: (metrics: {
+    accuracy: number;
+    test_accuracy: number[];
+    time: Date;
+  }) => void;
 }
 
 const ExperimentPage: React.FC<ExperimentPageProps> = ({
   setPage,
   experimentDataRef,
+  setSurveyMetrics,
 }) => {
   const questions = experimentQuestions[group];
   const totalQuestions = questions.length;
@@ -49,7 +55,6 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
   const [input, setInput] = useState('');
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
-  // record start time once
   const startTimeRef = useRef<number | null>(null);
 
   const currentQuestion = questions[current];
@@ -65,7 +70,6 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
       return;
     }
 
-    // save response
     experimentDataRef.current[current] = input;
 
     if (current < totalQuestions - 1) {
@@ -73,39 +77,38 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
       setInput(experimentDataRef.current[current + 1] || '');
       setAttemptedSubmit(false);
     } else {
-      // final submission → compute metrics
       const endTime = Date.now();
       const timeTakenMs = startTimeRef.current
         ? endTime - startTimeRef.current
         : 0;
+      const time = new Date(endTime);
 
-      // compute per-question accuracy with normalization
       const accuracies = questions.map((q, idx) => {
         const expected = q.string;
         let actual = experimentDataRef.current[idx] || '';
 
-        // normalize real newlines/tabs into literal two-character tokens
         actual = actual
-          .replace(/\r\n/g, '\n')   // unify CRLF -> LF
+          .replace(/\r\n/g, '\n')
           .replace(/\n/g, '\\n')
           .replace(/\t/g, '\\t');
 
-        // exact-match shortcut
         if (expected === actual) {
-          return '100.0';
+          return 100.0;
         }
 
         const dist = levenshteinDistance(expected, actual);
         const maxLen = Math.max(expected.length, actual.length);
-        return maxLen > 0
-          ? ((1 - dist / maxLen) * 100).toFixed(1)
-          : '100.0';
+        return maxLen > 0 ? (1 - dist / maxLen) * 100 : 100.0;
       });
 
       const overallAccuracy =
-        accuracies
-          .map((a) => parseFloat(a))
-          .reduce((sum, val) => sum + val, 0) / totalQuestions;
+        accuracies.reduce((sum, val) => sum + val, 0) / totalQuestions;
+
+      setSurveyMetrics({
+        accuracy: overallAccuracy,
+        test_accuracy: accuracies,
+        time,
+      });
 
       console.log('⏱ Time taken (ms):', timeTakenMs);
       console.log('✅ Accuracy per question (%):', accuracies);
@@ -126,7 +129,6 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
 
   return (
     <div className="flex flex-col items-center justify-center w-full px-6 py-10">
-      {/* Back to Training */}
       <div className="w-full flex justify-start mb-4">
         <button
           className="text-white text-xl px-3 py-1 rounded hover:bg-blue-700 transition-colors border border-white/20 shadow-sm"
