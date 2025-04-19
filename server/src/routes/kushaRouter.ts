@@ -1,5 +1,3 @@
-// src/server/routes/marcos.ts
-
 import { Router } from 'express';
 // import {
 
