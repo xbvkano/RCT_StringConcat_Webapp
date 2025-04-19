@@ -2,6 +2,7 @@
 import express from 'express'
 import cors from 'cors'
 import marcosRouter from './routes/marcosRouter'   // make sure this path matches your file name
+import kushaRouter from './routes/kushaRouter'
 import { errorHandler } from './middlewares/errorHandler'
 
 const app = express()
@@ -16,7 +17,7 @@ app.get('/', (_req, res) => {
 
 // all /marcos endpoints
 app.use('/marcos', marcosRouter)
-
+app.use('/kusha', kushaRouter)
 // error handler (must have 4 params: (err, req, res, next))
 app.use(errorHandler)
 
