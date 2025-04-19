@@ -1,3 +1,32 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+///— reify your determinant groups as a Prisma enum —///
+/// names match your DetGroup values in code
+enum DetGroup {
+  Backslash         // \SPECIAL
+  SingleQuote       // 'SPECIAL'
+  DoubleQuote       // "SPECIAL"
+  TemplateLiteral   // `${SPECIAL}`
+  EscapedPrefix     // \\SPECIAL
+  BacktickDet         // `SPECIAL`
+  AngleBracket      // <SPECIAL>
+  DollarSign        // $SPECIAL
+  TildeWrapped      // ~SPECIAL~
+  HashPrefix        // #SPECIAL
+  TagSlash          // / \ < >SPECIAL
+  HashSuffix        // SPECIAL#
+}
+
+///— your existing enums —///
 enum ProgrammingLanguage {
   cpp
   java
@@ -14,24 +43,17 @@ enum Sex {
   other
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
+///— your model with `group` as a DetGroup instead of Int —///
 model Marcos_Data {
-  id               Int                 @id @default(autoincrement())
+  id               Int                  @id @default(autoincrement())
   yearsProgramming Int
   age              Int
   sex              Sex
   language         ProgrammingLanguage
-  email            String?             // optional
+  email            String?              // optional
   accuracy         Float
   task_accuracy    Float[]
   time             DateTime
   created_at       DateTime             @default(now())
+  group            DetGroup             @default(Backslash)
 }

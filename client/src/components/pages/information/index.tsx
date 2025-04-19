@@ -72,7 +72,7 @@ const InfoPage: React.FC<InfoPageProps> = ({ setPage }) => {
               ['$SPECIAL', 'Dollar sign'],
               ['~SPECIAL~', 'Tilde-wrapped abbreviation'],
                 ['#SPECIAL', 'Hash-prefixed label'],
-                ['/ \\ < >SPECIAL', 'Tag slash'],
+                ['/ \\ SPECIAL< >', 'Tag slash'],
             ].map(([code, label]) => (
               <li key={code} className="flex justify-end items-start gap-2">
                 <span className="text-left">

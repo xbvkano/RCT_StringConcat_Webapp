@@ -1,4 +1,6 @@
-import { useRef, useState } from 'react';
+// src/App.tsx
+
+import React, { useRef, useState } from 'react';
 import CenteredPaper from './components/paper';
 import InfoPage from './components/pages/information';
 import LandingPage from './components/pages/landing';
@@ -8,7 +10,6 @@ import TrainingPage from './components/pages/training';
 import ExperimentPage from './components/pages/experiment';
 import ThankYouPage from './components/pages/thankyou';
 import { ProgrammingLanguage } from './../../shared/languageOptions';
-
 
 export const PAGES = {
   landing: 'landing',
@@ -51,49 +52,58 @@ function App() {
     switch (page) {
       case PAGES.landing:
         return <LandingPage setPage={setPage} />;
+
       case PAGES.info:
         return <InfoPage setPage={setPage} />;
+
       case PAGES.survey:
         return (
           <SurveyPage
             setPage={setPage}
             surveyData={surveyDataRef.current}
-            setSurveyData={(data) => (surveyDataRef.current = data)}
-          />
-        );
-      case PAGES.training:
-        return <TrainingPage setPage={setPage} />;
-      case PAGES.experiment:
-        return (
-          <ExperimentPage
-            setPage={setPage}
-            experimentDataRef={experimentDataRef}
-            setSurveyMetrics={({ accuracy, test_accuracy, time }) => {
-              surveyDataRef.current = {
-                ...surveyDataRef.current,
-                accuracy,
-                test_accuracy,
-                time,
-              };
+            setSurveyData={(data) => {
+              surveyDataRef.current = data;
             }}
           />
         );
+
+      case PAGES.training:
+        return <TrainingPage setPage={setPage} />;
+
+        case PAGES.experiment:
+          return (
+            <ExperimentPage
+              setPage={setPage}
+              surveyData={surveyDataRef.current}            // ← add this
+              experimentDataRef={experimentDataRef}
+              setSurveyMetrics={({ accuracy, test_accuracy, time }) => {
+                surveyDataRef.current = {
+                  ...surveyDataRef.current,
+                  accuracy,
+                  test_accuracy,
+                  time,
+                };
+              }}
+              clearSurveyData={() => {
+                surveyDataRef.current = {
+                  yearsProgramming: '',
+                  age: '',
+                  sex: '',
+                  language: '',
+                  email: '',
+                };
+              }}
+            />
+          );
+
       case PAGES.thankyou:
         return (
           <ThankYouPage
             setPage={setPage}
             surveyData={surveyDataRef.current}
-            clearSurveyData={() => {
-              surveyDataRef.current = {
-                yearsProgramming: '',
-                age:               '',
-                sex:               '',
-                language:          '',
-                email:             '',
-              };
-            }}
           />
         );
+
       default:
         return <NotFoundPage setPage={setPage} />;
     }
