@@ -25,7 +25,6 @@ import {
 } from './components/questionsTemplates';
 
 const apiUrl = import.meta.env.VITE_API_URL;
-
 export enum DetGroup {
   Backslash = 'Backslash',
   SingleQuote = 'SingleQuote',

@@ -94,40 +94,54 @@ export const createEntry: RequestHandler = async (req, res, next) => {
 /**
  * GET /next-group
  */
+
+
+
 export const getNextGroup: RequestHandler = async (_req, res, next) => {
   try {
-    console.log("Got request to getNextGroup")
-    const chosenGroup: DetGroup = await prisma.$transaction(async tx => {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(42)`
+    const ACTIVE_GROUPS: DetGroup[] = [
+      DetGroup.AngleBracket,
+      DetGroup.Backslash,
+      DetGroup.TemplateLiteral,
+    ];
+    
+    console.log("Got request to getNextGroup");
 
+    const chosenGroup: DetGroup = await prisma.$transaction(async tx => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(42)`;
+
+      // counts for every group that has at least one row
       const counts = await tx.marcos_Data.groupBy({
         by: ['group'],
         _count: { group: true },
-      })
+      });
 
+      // start every ACTIVE group at zero
       const countsMap = Object.fromEntries(
-        Object.values(DetGroup).map(g => [g, 0])
-      ) as Record<DetGroup, number>
+        ACTIVE_GROUPS.map(g => [g, 0]),
+      ) as Record<DetGroup, number>;
 
+      // fill in the actual counts we just fetched
       counts.forEach(c => {
-        countsMap[c.group] = c._count.group
-      })
+        if (ACTIVE_GROUPS.includes(c.group as DetGroup)) {
+          countsMap[c.group as DetGroup] = c._count.group;
+        }
+      });
 
-      const minCount   = Math.min(...Object.values(countsMap))
-      const candidates = Object.entries(countsMap)
-        .filter(([, cnt]) => cnt === minCount)
-        .map(([g]) => g as DetGroup)
+      // balance only among ACTIVE groups
+      const minCount = Math.min(...ACTIVE_GROUPS.map(g => countsMap[g]));
+      const candidates = ACTIVE_GROUPS.filter(g => countsMap[g] === minCount);
 
-      return candidates[Math.floor(Math.random() * candidates.length)]
-    })
+      return candidates[Math.floor(Math.random() * candidates.length)];
+    });
 
-    console.log("returning " + chosenGroup)
-    res.json({ group: chosenGroup })
+    console.log("returning " + chosenGroup);
+    res.json({ group: chosenGroup });
   } catch (err) {
-    console.error('❌ Error in getNextGroup:', err)
-    next(err)
+    console.error("❌ Error in getNextGroup:", err);
+    next(err);
   }
-}
+};
 
 /**
  * GET /
