@@ -1,0 +1,52 @@
+name: Deploy Vite app to Pages
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repo
+      - uses: actions/checkout@v4
+
+      # 2. Set up Node
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3. Install deps and build **inside /client**
+      - name: Build Vite site
+        working-directory: client
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        run: |
+          npm ci
+          npm run build   # uses base from vite.config
+
+      # 4. Configure Pages
+      - uses: actions/configure-pages@v5
+
+      # 5. Upload only the built files
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'client/dist'   # <- compiled static files
+
+      # 6. Deploy
+      - id: deploy
+        uses: actions/deploy-pages@v4
