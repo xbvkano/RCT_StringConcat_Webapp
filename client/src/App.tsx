@@ -1,6 +1,6 @@
 // src/App.tsx
 
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import CenteredPaper from './components/paper';
 import InfoPage from './components/pages/information';
 import LandingPage from './components/pages/landing';

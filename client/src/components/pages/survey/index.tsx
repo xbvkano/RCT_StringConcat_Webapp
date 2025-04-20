@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PageKey, PAGES, SurveyData } from './../../../App';
-import { ProgrammingLanguageMap, ProgrammingLanguageKey }  from './../../../../../shared/languageOptions';
+import { ProgrammingLanguageMap }  from './../../../../../shared/languageOptions';
 
 interface SurveyPageProps {
   setPage: (page: PageKey) => void;
@@ -35,10 +35,19 @@ const SurveyPage: React.FC<SurveyPageProps> = ({ setPage, surveyData, setSurveyD
     setForm(surveyData); // preload data when returning
   }, [surveyData]);
 
-  const getFieldClass = (field: keyof SurveyData) =>
-    !form[field].trim() && attemptedSubmit
-      ? 'border-red-500'
-      : 'border-gray-600';
+  const getFieldClass = (field: keyof SurveyData): string => {
+    // If the form hasn’t loaded yet, show the neutral style
+    if (!form) return 'border-gray-600';
+  
+    // Read the value safely
+    const value = form[field];
+  
+    // Only string fields can be trimmed; everything else is treated as “filled”
+    const isBlank =
+      typeof value === 'string' ? value.trim().length === 0 : false;
+  
+    return attemptedSubmit && isBlank ? 'border-red-500' : 'border-gray-600';
+  };
 
   return (
     <div className="flex flex-col items-center justify-center w-full px-6 py-10">

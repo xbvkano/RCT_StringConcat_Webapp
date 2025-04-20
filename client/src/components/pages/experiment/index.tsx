@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { PageKey, PAGES, SurveyData } from './../../../App';
-import {QuestionProps, QuestionScreen} from "./components/questionScreen"
+import { QuestionScreen} from "./components/questionScreen"
 import { AssignmentScreen } from "./components/AssigmentScreen"
 
 import {
