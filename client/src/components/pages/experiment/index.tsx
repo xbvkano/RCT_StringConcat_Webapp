@@ -60,7 +60,7 @@ export interface ExperimentPageProps {
     durationMs: number
   }) => void
   clearSurveyData: () => void
-  assigmentId: string
+  assignmentId: number
 }
 
 const apiUrl = import.meta.env.VITE_API_URL
@@ -73,7 +73,7 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
   questions,
   setSurveyMetrics,
   clearSurveyData,
-  assigmentId,
+  assignmentId,
 }) => {
   const [started, setStarted] = useState(false)
   const [current, setCurrent] = useState(0)
@@ -139,6 +139,7 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
     })
 
     try {
+      console.log("THIS IS THE DATA: " + assignmentId)
       await axios.post(`${apiUrl}/marcos`, {
         yearsProgramming: surveyData.yearsProgramming,
         age: surveyData.age,
@@ -149,7 +150,7 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
         task_accuracy: accuracies,
         durationMs,
         group: selectedGroup,
-        assigmentId: assigmentId
+        assignmentId: assignmentId
       })
       experimentDataRef.current = []
       setInput('')
