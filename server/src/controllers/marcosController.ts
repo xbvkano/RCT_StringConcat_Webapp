@@ -45,7 +45,7 @@ export const createEntry: RequestHandler = async (req, res, next) => {
       email,
       accuracy,
       task_accuracy,
-      time: rawTime,
+      durationMs,
       group: rawGroup,
     } = req.body as Record<string, any>
 
@@ -62,12 +62,6 @@ export const createEntry: RequestHandler = async (req, res, next) => {
     }
     const groupEnum = rawGroup as DetGroup
 
-    const parsedTime = new Date(rawTime)
-    if (isNaN(parsedTime.valueOf())) {
-      res.status(400).json({ error: `Invalid time: ${rawTime}` })
-      return
-    }
-
     const entry = await prisma.marcos_Data.create({
       data: {
         yearsProgramming: parsedYears,
@@ -77,7 +71,7 @@ export const createEntry: RequestHandler = async (req, res, next) => {
         email,
         accuracy:          typeof accuracy === 'string' ? parseFloat(accuracy) : accuracy,
         task_accuracy,
-        time:              parsedTime,
+        durationMs:        durationMs,
         group:             groupEnum,
       },
     })

@@ -32,7 +32,7 @@ export interface SurveyData {
   email: string
   accuracy?: number
   test_accuracy?: number[]
-  time?: Date
+  durationMs?: number
 }
 
 const apiUrl = import.meta.env.VITE_API_URL
@@ -103,12 +103,12 @@ function App() {
             experimentDataRef={experimentDataRef}
             selectedGroup={selectedGroup as DetGroup}
             questions={questions}
-            setSurveyMetrics={({ accuracy, test_accuracy, time }) => {
+            setSurveyMetrics={({ accuracy, test_accuracy, durationMs }) => {
               surveyDataRef.current = {
                 ...surveyDataRef.current,
                 accuracy,
                 test_accuracy,
-                time,
+                durationMs,
               }
             }}
             clearSurveyData={() => {

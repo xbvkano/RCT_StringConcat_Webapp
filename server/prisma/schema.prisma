@@ -53,7 +53,7 @@ model Marcos_Data {
   email            String?              // optional
   accuracy         Float
   task_accuracy    Float[]
-  time             DateTime
+  durationMs       Int                  @default(0)
   created_at       DateTime             @default(now())
   group            DetGroup             @default(Backslash)
 }

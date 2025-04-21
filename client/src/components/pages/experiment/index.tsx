@@ -1,4 +1,4 @@
-// src/components/pages/experiment.tsx
+// src/components/pages/ExperimentPage.tsx
 import React, { useState, useRef } from 'react'
 import axios from 'axios'
 import { PageKey, PAGES, SurveyData } from './../../../App'
@@ -17,8 +17,6 @@ import {
   detMap,
   DetGroup
 } from '../../ultilities/questionsTemplates'
-
-
 
 
 /**
@@ -59,7 +57,7 @@ export interface ExperimentPageProps {
   setSurveyMetrics: (metrics: {
     accuracy: number
     test_accuracy: number[]
-    time: Date
+    durationMs: number
   }) => void
   clearSurveyData: () => void
 }
@@ -100,7 +98,7 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
     const actualTokens = tokenizeInputString(input)
     const dist = levenshteinDistanceArray(expectedTokens, actualTokens)
     const maxLen = Math.max(expectedTokens.length, actualTokens.length)
-    const accuracy = maxLen > 0 ? ((1 - dist / maxLen) * 100) : 100
+    const accuracy = maxLen > 0 ? (1 - dist / maxLen) * 100 : 100
     console.log(
       `Accuracy for Q${current + 1}: ${accuracy.toFixed(2)}%`,
       { expectedTokens, actualTokens }
@@ -116,7 +114,11 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
     }
 
     // — Final submission: compute all token‐based accuracies —
-    const time = new Date()
+    const finishTime = Date.now()
+    const durationMs = startTimeRef.current
+      ? finishTime - startTimeRef.current
+      : 0
+
     const accuracies = rawTemplates.map((tmpl, idx) => {
       const expT = getExpectedTokens(tmpl)
       const actT = tokenizeInputString(experimentDataRef.current[idx] || '')
@@ -127,10 +129,11 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
     const overallAccuracy =
       accuracies.reduce((sum, v) => sum + v, 0) / totalQuestions
 
+    // use durationMs instead of Date
     setSurveyMetrics({
       accuracy: overallAccuracy,
       test_accuracy: accuracies,
-      time,
+      durationMs,
     })
 
     try {
@@ -142,7 +145,7 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
         email: surveyData.email,
         accuracy: overallAccuracy,
         task_accuracy: accuracies,
-        time,
+        durationMs,
         group: selectedGroup,
       })
       experimentDataRef.current = []
