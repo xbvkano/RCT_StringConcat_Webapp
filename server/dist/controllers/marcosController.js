@@ -40,11 +40,43 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getEntryById = exports.getAllEntriesCsv = exports.getNextGroup = exports.createEntry = void 0;
+exports.getAllEntriesCsv = exports.getEntryById = exports.getNextGroup = exports.createEntry = void 0;
 var client_1 = require("@prisma/client");
+var node_cron_1 = __importDefault(require("node-cron"));
 var sync_1 = require("csv-stringify/sync");
 var prisma = new client_1.PrismaClient();
+// Every minute, clean up assignments older than 20 minutes that never completed
+node_cron_1.default.schedule('*/1 * * * *', function () { return __awaiter(void 0, void 0, void 0, function () {
+    var cutoff, count, err_1;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                _a.trys.push([0, 2, , 3]);
+                cutoff = new Date(Date.now() - 30 * 60 * 1000);
+                return [4 /*yield*/, prisma.assignment.deleteMany({
+                        where: {
+                            completed: false,
+                            createdAt: { lt: cutoff },
+                        },
+                    })];
+            case 1:
+                count = (_a.sent()).count;
+                if (count > 0) {
+                    console.log("\uD83D\uDDD1  Cleaned up ".concat(count, " abandoned assignments (older than 20m)"));
+                }
+                return [3 /*break*/, 3];
+            case 2:
+                err_1 = _a.sent();
+                console.error('Error cleaning up abandoned assignments:', err_1);
+                return [3 /*break*/, 3];
+            case 3: return [2 /*return*/];
+        }
+    });
+}); });
 function parseSex(input) {
     switch (input.toLowerCase()) {
         case 'male': return client_1.Sex.male;
@@ -71,52 +103,66 @@ function parseLang(input) {
 }
 /**
  * POST /
+ * Handles survey + experiment submission. Expects assignmentId for balancing.
  */
 var createEntry = function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var _a, yearsProgramming, age, sexInput, languageInput, email, accuracy, task_accuracy, rawTime, rawGroup, parsedYears, parsedAge, sexEnum, langEnum, groupEnum, parsedTime, entry, err_1;
+    var _a, assignmentId_1, yearsProgramming, age, sexInput, languageInput, email_1, accuracy_1, task_accuracy_1, durationMs_1, rawGroup, parsedYears_1, parsedAge_1, sexEnum_1, langEnum_1, groupEnum_1, entry, err_2;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0:
                 _b.trys.push([0, 2, , 3]);
-                _a = req.body, yearsProgramming = _a.yearsProgramming, age = _a.age, sexInput = _a.sex, languageInput = _a.language, email = _a.email, accuracy = _a.accuracy, task_accuracy = _a.task_accuracy, rawTime = _a.time, rawGroup = _a.group;
-                parsedYears = parseInt(yearsProgramming, 10);
-                parsedAge = parseInt(age, 10);
-                sexEnum = parseSex(sexInput);
-                langEnum = parseLang(languageInput);
-                console.log("Got CreateEntry request with body" + JSON.stringify(req.body, null, 2));
+                _a = req.body, assignmentId_1 = _a.assignmentId, yearsProgramming = _a.yearsProgramming, age = _a.age, sexInput = _a.sex, languageInput = _a.language, email_1 = _a.email, accuracy_1 = _a.accuracy, task_accuracy_1 = _a.task_accuracy, durationMs_1 = _a.durationMs, rawGroup = _a.group;
+                parsedYears_1 = parseInt(yearsProgramming, 10);
+                parsedAge_1 = parseInt(age, 10);
+                sexEnum_1 = parseSex(sexInput);
+                langEnum_1 = parseLang(languageInput);
                 if (!Object.values(client_1.DetGroup).includes(rawGroup)) {
                     res.status(400).json({ error: "Invalid group: ".concat(rawGroup) });
                     return [2 /*return*/];
                 }
-                groupEnum = rawGroup;
-                parsedTime = new Date(rawTime);
-                if (isNaN(parsedTime.valueOf())) {
-                    res.status(400).json({ error: "Invalid time: ".concat(rawTime) });
-                    return [2 /*return*/];
-                }
-                return [4 /*yield*/, prisma.marcos_Data.create({
-                        data: {
-                            yearsProgramming: parsedYears,
-                            age: parsedAge,
-                            sex: sexEnum,
-                            language: langEnum,
-                            email: email,
-                            accuracy: typeof accuracy === 'string' ? parseFloat(accuracy) : accuracy,
-                            task_accuracy: task_accuracy,
-                            time: parsedTime,
-                            group: groupEnum,
-                        },
-                    })];
+                groupEnum_1 = rawGroup;
+                console.log('📥 Creating entry with:', { yearsProgramming: yearsProgramming, age: age, sexEnum: sexEnum_1, langEnum: langEnum_1, email: email_1, accuracy: accuracy_1, task_accuracy: task_accuracy_1, durationMs: durationMs_1, groupEnum: groupEnum_1, assignmentId: assignmentId_1 });
+                return [4 /*yield*/, prisma.$transaction(function (tx) { return __awaiter(void 0, void 0, void 0, function () {
+                        var created;
+                        return __generator(this, function (_a) {
+                            switch (_a.label) {
+                                case 0: return [4 /*yield*/, tx.marcos_Data.create({
+                                        data: {
+                                            yearsProgramming: parsedYears_1,
+                                            age: parsedAge_1,
+                                            sex: sexEnum_1,
+                                            language: langEnum_1,
+                                            email: email_1,
+                                            accuracy: typeof accuracy_1 === 'string' ? parseFloat(accuracy_1) : accuracy_1,
+                                            task_accuracy: task_accuracy_1,
+                                            durationMs: durationMs_1,
+                                            group: groupEnum_1,
+                                        },
+                                    })
+                                    // mark assignment completed
+                                ];
+                                case 1:
+                                    created = _a.sent();
+                                    if (!assignmentId_1) return [3 /*break*/, 3];
+                                    return [4 /*yield*/, tx.assignment.update({
+                                            where: { id: assignmentId_1 },
+                                            data: { completed: true },
+                                        })];
+                                case 2:
+                                    _a.sent();
+                                    _a.label = 3;
+                                case 3: return [2 /*return*/, created];
+                            }
+                        });
+                    }); })];
             case 1:
                 entry = _b.sent();
-                console.log("Returning " + JSON.stringify(entry, null, 2));
-                // <— send response without returning it
                 res.status(201).json(entry);
                 return [3 /*break*/, 3];
             case 2:
-                err_1 = _b.sent();
-                console.error('❌ Error in createEntry:', err_1);
-                next(err_1); // next() returns void
+                err_2 = _b.sent();
+                console.error('❌ Error in createEntry:', err_2);
+                next(err_2);
                 return [3 /*break*/, 3];
             case 3: return [2 /*return*/];
         }
@@ -125,89 +171,71 @@ var createEntry = function (req, res, next) { return __awaiter(void 0, void 0, v
 exports.createEntry = createEntry;
 /**
  * GET /next-group
+ * Reserves a slot by inserting into Assignment.
  */
 var getNextGroup = function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var chosenGroup, err_2;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+    var ACTIVE_GROUPS_1, _a, chosenGroup, assignmentId, err_3;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
             case 0:
-                _a.trys.push([0, 2, , 3]);
-                console.log("Got request to getNextGroup");
+                _b.trys.push([0, 2, , 3]);
+                ACTIVE_GROUPS_1 = [
+                    client_1.DetGroup.AngleBracket,
+                    client_1.DetGroup.Backslash,
+                    client_1.DetGroup.TemplateLiteral,
+                ];
+                console.log('🔄 getNextGroup called');
                 return [4 /*yield*/, prisma.$transaction(function (tx) { return __awaiter(void 0, void 0, void 0, function () {
-                        var counts, countsMap, minCount, candidates;
+                        var counts, countMap, minCount, candidates, idx, chosen, id;
                         return __generator(this, function (_a) {
                             switch (_a.label) {
-                                case 0: return [4 /*yield*/, tx.$executeRaw(templateObject_1 || (templateObject_1 = __makeTemplateObject(["SELECT pg_advisory_xact_lock(42)"], ["SELECT pg_advisory_xact_lock(42)"])))];
+                                case 0: 
+                                // ensure single concurrent access
+                                return [4 /*yield*/, tx.$executeRaw(templateObject_1 || (templateObject_1 = __makeTemplateObject(["SELECT pg_advisory_xact_lock(42)"], ["SELECT pg_advisory_xact_lock(42)"
+                                        // count only completed assignments for balance
+                                    ])))];
                                 case 1:
+                                    // ensure single concurrent access
                                     _a.sent();
-                                    return [4 /*yield*/, tx.marcos_Data.groupBy({
+                                    return [4 /*yield*/, tx.assignment.groupBy({
                                             by: ['group'],
                                             _count: { group: true },
                                         })];
                                 case 2:
                                     counts = _a.sent();
-                                    countsMap = Object.fromEntries(Object.values(client_1.DetGroup).map(function (g) { return [g, 0]; }));
+                                    console.log("Counts: " + JSON.stringify(counts));
+                                    countMap = Object.fromEntries(ACTIVE_GROUPS_1.map(function (g) { return [g, 0]; }));
                                     counts.forEach(function (c) {
-                                        countsMap[c.group] = c._count.group;
+                                        var g = c.group;
+                                        if (ACTIVE_GROUPS_1.includes(g))
+                                            countMap[g] = c._count.group;
                                     });
-                                    minCount = Math.min.apply(Math, Object.values(countsMap));
-                                    candidates = Object.entries(countsMap)
-                                        .filter(function (_a) {
-                                        var cnt = _a[1];
-                                        return cnt === minCount;
-                                    })
-                                        .map(function (_a) {
-                                        var g = _a[0];
-                                        return g;
-                                    });
-                                    return [2 /*return*/, candidates[Math.floor(Math.random() * candidates.length)]];
+                                    minCount = Math.min.apply(Math, ACTIVE_GROUPS_1.map(function (g) { return countMap[g]; }));
+                                    candidates = ACTIVE_GROUPS_1.filter(function (g) { return countMap[g] === minCount; });
+                                    idx = Math.floor(Math.random() * candidates.length);
+                                    chosen = candidates[idx];
+                                    console.log("Chosen group: " + chosen);
+                                    return [4 /*yield*/, tx.assignment.create({ data: { group: chosen } })];
+                                case 3:
+                                    id = (_a.sent()).id;
+                                    return [2 /*return*/, { chosenGroup: chosen, assignmentId: id }];
                             }
                         });
                     }); })];
             case 1:
-                chosenGroup = _a.sent();
-                console.log("returning " + chosenGroup);
-                res.json({ group: chosenGroup });
+                _a = _b.sent(), chosenGroup = _a.chosenGroup, assignmentId = _a.assignmentId;
+                res.json({ group: chosenGroup, assignmentId: assignmentId });
                 return [3 /*break*/, 3];
             case 2:
-                err_2 = _a.sent();
-                console.error('❌ Error in getNextGroup:', err_2);
-                next(err_2);
-                return [3 /*break*/, 3];
-            case 3: return [2 /*return*/];
-        }
-    });
-}); };
-exports.getNextGroup = getNextGroup;
-/**
- * GET /
- */
-var getAllEntriesCsv = function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var data, csv, err_3;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                _a.trys.push([0, 2, , 3]);
-                return [4 /*yield*/, prisma.marcos_Data.findMany()];
-            case 1:
-                data = _a.sent();
-                csv = (0, sync_1.stringify)(data, { header: true });
-                res
-                    .status(200)
-                    .header('Content-Type', 'text/csv')
-                    .header('Content-Disposition', 'attachment; filename="marcos_data.csv"')
-                    .send(csv);
-                return [3 /*break*/, 3];
-            case 2:
-                err_3 = _a.sent();
-                console.error('❌ Error in getAllEntriesCsv:', err_3);
+                err_3 = _b.sent();
+                console.error('❌ Error in getNextGroup:', err_3);
                 next(err_3);
                 return [3 /*break*/, 3];
             case 3: return [2 /*return*/];
         }
     });
 }); };
-exports.getAllEntriesCsv = getAllEntriesCsv;
+exports.getNextGroup = getNextGroup;
 /**
  * GET /:id
  */
@@ -241,5 +269,35 @@ var getEntryById = function (req, res, next) { return __awaiter(void 0, void 0, 
     });
 }); };
 exports.getEntryById = getEntryById;
+/**
+ * GET /
+ * Download CSV of all results
+ */
+var getAllEntriesCsv = function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
+    var data, csv, err_5;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                _a.trys.push([0, 2, , 3]);
+                return [4 /*yield*/, prisma.marcos_Data.findMany()];
+            case 1:
+                data = _a.sent();
+                csv = (0, sync_1.stringify)(data, { header: true });
+                res
+                    .status(200)
+                    .header('Content-Type', 'text/csv')
+                    .header('Content-Disposition', 'attachment; filename="marcos_data.csv"')
+                    .send(csv);
+                return [3 /*break*/, 3];
+            case 2:
+                err_5 = _a.sent();
+                console.error('❌ Error in getAllEntriesCsv:', err_5);
+                next(err_5);
+                return [3 /*break*/, 3];
+            case 3: return [2 /*return*/];
+        }
+    });
+}); };
+exports.getAllEntriesCsv = getAllEntriesCsv;
 var templateObject_1;
 //# sourceMappingURL=marcosController.js.map
