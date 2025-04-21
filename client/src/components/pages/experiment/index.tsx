@@ -60,6 +60,7 @@ export interface ExperimentPageProps {
     durationMs: number
   }) => void
   clearSurveyData: () => void
+  assigmentId: string
 }
 
 const apiUrl = import.meta.env.VITE_API_URL
@@ -72,6 +73,7 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
   questions,
   setSurveyMetrics,
   clearSurveyData,
+  assigmentId,
 }) => {
   const [started, setStarted] = useState(false)
   const [current, setCurrent] = useState(0)
@@ -147,6 +149,7 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
         task_accuracy: accuracies,
         durationMs,
         group: selectedGroup,
+        assigmentId: assigmentId
       })
       experimentDataRef.current = []
       setInput('')

@@ -43,6 +43,13 @@ enum Sex {
   other
 }
 
+model Assignment {
+  id         Int       @id @default(autoincrement())
+  group      String
+  completed  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+}
+
 ///— your model with `group` as a DetGroup instead of Int —///
 model Marcos_Data {
   id               Int                  @id @default(autoincrement())

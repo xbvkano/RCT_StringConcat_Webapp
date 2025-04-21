@@ -56,14 +56,16 @@ function App() {
   const [selectedGroup, setSelectedGroup] = useState<DetGroup | null>(null)
   const [questions, setQuestions] = useState<string[]>([])
   const [loadingGroup, setLoadingGroup] = useState(true)
+  const [assigmentId, setAssigmentId] = useState("")
   const fetchOnce = useRef(false)
   useEffect(() => {
     if (fetchOnce.current) return
     fetchOnce.current = true
     axios
-      .get<{ group: DetGroup }>(`${apiUrl}/marcos/next-group`)
+      .get<{ group: DetGroup, assignmentId: string}>(`${apiUrl}/marcos/next-group`)
       .then(({ data }) => {
         setSelectedGroup(data.group)
+        setAssigmentId(data.assignmentId)
         setQuestions(applyDet(detMap[data.group], rawTemplates))
       })
       .catch((err) => console.error('Error fetching group:', err))
@@ -103,6 +105,7 @@ function App() {
             experimentDataRef={experimentDataRef}
             selectedGroup={selectedGroup as DetGroup}
             questions={questions}
+            assigmentId={assigmentId}
             setSurveyMetrics={({ accuracy, test_accuracy, durationMs }) => {
               surveyDataRef.current = {
                 ...surveyDataRef.current,
@@ -110,6 +113,7 @@ function App() {
                 test_accuracy,
                 durationMs,
               }
+              
             }}
             clearSurveyData={() => {
               surveyDataRef.current = {
