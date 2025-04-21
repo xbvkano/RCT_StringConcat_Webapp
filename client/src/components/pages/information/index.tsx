@@ -87,7 +87,7 @@ const InfoPage: React.FC<InfoPageProps> = ({ setPage }) => {
 
       {/* CTA button */}
       <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded mt-10 mb-6 shadow-lg transition-all"
-      onClick={() => setPage(PAGES.survey)}>
+      onClick={() => setPage(PAGES.explain)}>
         Get Started
       </button>
     </div>
