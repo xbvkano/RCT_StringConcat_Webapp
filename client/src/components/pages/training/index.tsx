@@ -1,7 +1,7 @@
 // src/components/pages/TrainingPage.tsx
 import React, { useState, useEffect } from 'react'
 import { PageKey, PAGES } from './../../../App'
-import { getExpectedTokens, tokenizeInputString } from '../../ultilities/tokenizer'
+import { getExpectedTokens } from '../../ultilities/tokenizer'
 import { trainingTemplate } from '../../ultilities/questionsTemplates'
 import { applyDet, detMap, DetGroup } from '../../ultilities/questionsTemplates'
 import { KeyboardDisplay } from '../../ultilities/keyboard'

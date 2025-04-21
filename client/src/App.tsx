@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import axios from 'axios'
 import CenteredPaper from './components/paper'
 import InfoPage from './components/pages/information'
