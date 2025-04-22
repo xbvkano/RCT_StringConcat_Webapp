@@ -56,27 +56,68 @@ export const templates = [
     `Escape sequence: {\\}{n}{\\}`,      // literal backslashes + code
   ] as const;
 
-  export const trainingTemplate = [
-    `{n}Train start{t}`,               // newline then tab
-    `Simple{n}Example`,                // glued around newline
-    `Space before{t}`,                 // tab at end
-    `Before{n}Space`,                  // newline then space
-    `Backslash{\\}here`,               // backslash placeholder
-    `Quote{'}`,                        // single‑quote placeholder
-    `Double{"}`,                       // double‑quote placeholder
-    `NullChar{0}`,                     // nullCharacter placeholder
-    `Mix{n}and{t}`,                    // newline and tab
-    `Prefix{\\}Suffix`,                // backslash glued
-    // `Wrap{'text'}`,                    // single‑quote around text
-    // `HTML:<div>{n}</div>`,             // newline inside HTML
-    // `Path C:{\\}Folder`,               // backslash in path
-    // `CSV: a{t}b, c{n}d`,               // CSV style
-    // `Dash-{n}-{t}-End`,                // dashes + two codes
-    // `Angle<{t}>Test`,                  // tab inside angle
-    // `Tilde~{0}~`,                      // nullCharacter surrounded by tildes
-    // `Hash#{\\}`,                       // backslash after hash
-    // `TagSlash /\\{n}< >`,              // mixed tagSlash + newline
-  ]
+export const trainingTemplate = [
+  `{n}Train start{t}`,               // newline then tab
+  `Simple{n}Example`,                // glued around newline
+  `Space before{t}`,                 // tab at end
+  `Before{n}Space`,                  // newline then space
+  `Backslash{\\}here`,               // backslash placeholder
+  `Quote{'}`,                        // single‑quote placeholder
+  `Double{"}`,                       // double‑quote placeholder
+  `NullChar{0}`,                     // nullCharacter placeholder
+  `Mix{n}and{t}`,                    // newline and tab
+  `Prefix{\\}Suffix`,                // backslash glued
+  // `Wrap{'text'}`,                    // single‑quote around text
+  // `HTML:<div>{n}</div>`,             // newline inside HTML
+  // `Path C:{\\}Folder`,               // backslash in path
+  // `CSV: a{t}b, c{n}d`,               // CSV style
+  // `Dash-{n}-{t}-End`,                // dashes + two codes
+  // `Angle<{t}>Test`,                  // tab inside angle
+  // `Tilde~{0}~`,                      // nullCharacter surrounded by tildes
+  // `Hash#{\\}`,                       // backslash after hash
+  // `TagSlash /\\{n}< >`,              // mixed tagSlash + newline
+]
+
+
+
+export const newlineTemplate = [
+  `Bob{n}Bob{n}{n}Bob`,
+  `{n}NEWLINE NEW {n} LINE`,
+  `Ho{n}W many lines`,
+  `How many {n} lines {n}`,
+  `One {n} Three {n}{n}`,
+  `{n}{n}{n}How Many?`,
+  '{n}How Many {n}{n}',
+  `I'll{n}_BE{n}_BACK`,
+  `I{n}'LL_B{n}E{n}_BACK`,
+  `LAme`
+]
+
+export const newLineSyntax = [
+  "<< std::endl <<",
+  "<< endl <<",
+  "\\n",
+  "<br>",
+  "\\r\\n",
+  "ñ",
+  "\n", // Actually display a new line
+  ":)=$",
+  "ژ",
+]
+
+export function applyNewlineSyntax(syntax: string): string[] {
+  return newlineTemplate.map(template =>
+    template.replace(/{n}/g, syntax)
+  );
+}
+
+export function applyRandomSyntax(templates: string[], syntax: string): string[] {
+  return templates.map(template =>
+    syntax === "\n"
+      ? template.replace(/{n}/g, "\n")
+      : template.replace(/{n}/g, syntax)
+  )
+}
 
 
 // 3) The “apply” function

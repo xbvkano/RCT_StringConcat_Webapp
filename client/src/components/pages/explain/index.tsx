@@ -64,7 +64,7 @@ export const ExplainPage: React.FC<ExplainPageProps> = ({ setPage }) => {
 
       {/* Continue Button */}
       <button
-        onClick={() => setPage(PAGES.survey)}
+        onClick={() => setPage(PAGES.training)}
         className="mt-6 py-2 px-6 font-semibold rounded shadow-md bg-blue-600 hover:bg-blue-700 transition-all text-white"
       >
         Start Training

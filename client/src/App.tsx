@@ -10,7 +10,17 @@ import ExperimentPage from './components/pages/experiment'
 import ThankYouPage from './components/pages/thankyou'
 import ExplainPage from './components/pages/explain'
 import { ProgrammingLanguage } from './../../shared/languageOptions'
-import { templates as rawTemplates, applyDet, DetGroup, detMap } from './components/ultilities/questionsTemplates'
+import {
+  templates as rawTemplates,
+  applyDet, DetGroup, detMap,
+  applyNewlineSyntax, newLineSyntax, newlineTemplate
+} from './components/ultilities/questionsTemplates'
+
+const replaced = applyNewlineSyntax(
+  newLineSyntax[Math.floor(Math.random() * newLineSyntax.length)]
+);
+console.log(replaced);
+
 
 export const PAGES = {
   landing: 'landing',
