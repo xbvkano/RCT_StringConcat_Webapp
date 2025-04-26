@@ -11,8 +11,11 @@ import ThankYouPage from './components/pages/thankyou'
 import ExplainPage from './components/pages/explain'
 import { ProgrammingLanguage } from '../../shared/languageOptions'
 
-// ← Import the within-subject generator:
-import { generateWithinSubjectQuestions } from './components/ultilities/questionsTemplates'
+// ← now also import the QuestionItem type
+import {
+  generateWithinSubjectQuestions,
+  QuestionItem,
+} from './components/ultilities/questionsTemplates'
 
 export const PAGES = {
   landing: 'landing',
@@ -31,9 +34,9 @@ export interface SurveyData {
   sex: string
   language: ProgrammingLanguage | ''
   email: string
-  accuracy?: number
-  test_accuracy?: number[]
-  durationMs?: number
+  ids?: string[]
+  test_accuracy?: boolean[]
+  durations?: number[]
 }
 
 const apiUrl = import.meta.env.VITE_API_URL
@@ -50,11 +53,15 @@ function App() {
     email: '',
   })
 
-  // Persisted experiment answers
+  // Persisted experiment state
   const experimentDataRef = useRef<string[]>([])
+  const idsRef         = useRef<string[]>([])
+  const accuracyRef    = useRef<boolean[]>([])
+  const durationsRef   = useRef<number[]>([])
 
-  // Questions & assignment state
-  const [questions, setQuestions] = useState<string[]>([])
+  // Questions & assignment
+  // ← questions are now QuestionItem[]
+  const [questions, setQuestions] = useState<QuestionItem[]>([])
   const [assignmentId, setAssignmentId] = useState(0)
   const [loading, setLoading] = useState(true)
   const fetched = useRef(false)
@@ -65,15 +72,15 @@ function App() {
 
     axios
       .get<{ assignmentId: string }>(`${apiUrl}/marcos/next-group`)
-      .then((resp) => {
+      .then(resp => {
         setAssignmentId(parseInt(resp.data.assignmentId, 10))
       })
-      .catch((err) => {
+      .catch(err => {
         console.error('Error fetching assignment:', err)
       })
       .finally(() => {
-        // ← Generate your 10 within‐subject prompts here. You can pass any count.
-        setQuestions(generateWithinSubjectQuestions(10))
+        // ← now returns QuestionItem[]
+        setQuestions(generateWithinSubjectQuestions())
         setLoading(false)
       })
   }, [])
@@ -91,14 +98,13 @@ function App() {
           <SurveyPage
             setPage={setPage}
             surveyData={surveyDataRef.current}
-            setSurveyData={(data) => {
+            setSurveyData={data => {
               surveyDataRef.current = data
             }}
           />
         )
 
       case PAGES.training:
-        // ← training is totally unchanged
         return <TrainingPage setPage={setPage} />
 
       case PAGES.experiment:
@@ -110,14 +116,18 @@ function App() {
             setPage={setPage}
             surveyData={surveyDataRef.current}
             experimentDataRef={experimentDataRef}
+            idsRef={idsRef}
+            durationsRef={durationsRef}
+            accuracyRef={accuracyRef}
+            // pass down the QuestionItem[] array
             questions={questions}
             assignmentId={assignmentId}
-            setSurveyMetrics={({ accuracy, test_accuracy, durationMs }) => {
+            setSurveyMetrics={({ ids, accuracyArray, durations }) => {
               surveyDataRef.current = {
                 ...surveyDataRef.current,
-                accuracy,
-                test_accuracy,
-                durationMs,
+                ids,
+                test_accuracy: accuracyArray,
+                durations,
               }
             }}
             clearSurveyData={() => {
