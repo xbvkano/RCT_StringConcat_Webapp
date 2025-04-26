@@ -1,26 +1,18 @@
+// src/App.tsx
 import { useRef, useState, useEffect } from 'react'
 import axios from 'axios'
 import CenteredPaper from './components/paper'
-import InfoPage from './components/pages/information'
 import LandingPage from './components/pages/landing'
+import InfoPage from './components/pages/information'
 import SurveyPage from './components/pages/survey'
-import NotFoundPage from './components/pages/notFound'
 import TrainingPage from './components/pages/training'
 import ExperimentPage from './components/pages/experiment'
 import ThankYouPage from './components/pages/thankyou'
 import ExplainPage from './components/pages/explain'
-import { ProgrammingLanguage } from './../../shared/languageOptions'
-import {
-  templates as rawTemplates,
-  applyDet, DetGroup, detMap,
-  applyNewlineSyntax, newLineSyntax, newlineTemplate
-} from './components/ultilities/questionsTemplates'
+import { ProgrammingLanguage } from '../../shared/languageOptions'
 
-const replaced = applyNewlineSyntax(
-  newLineSyntax[Math.floor(Math.random() * newLineSyntax.length)]
-);
-console.log(replaced);
-
+// ← Import the within-subject generator:
+import { generateWithinSubjectQuestions } from './components/ultilities/questionsTemplates'
 
 export const PAGES = {
   landing: 'landing',
@@ -29,9 +21,8 @@ export const PAGES = {
   training: 'training',
   experiment: 'experiment',
   thankyou: 'thankyou',
-  explain: 'explain'
+  explain: 'explain',
 } as const
-
 export type PageKey = keyof typeof PAGES
 
 export interface SurveyData {
@@ -62,26 +53,29 @@ function App() {
   // Persisted experiment answers
   const experimentDataRef = useRef<string[]>([])
 
-  // ─── Lifted experiment state ────────────────────────────────
-  const [selectedGroup, setSelectedGroup] = useState<DetGroup | null>(null)
+  // Questions & assignment state
   const [questions, setQuestions] = useState<string[]>([])
-  const [loadingGroup, setLoadingGroup] = useState(true)
   const [assignmentId, setAssignmentId] = useState(0)
-  const fetchOnce = useRef(false)
-  useEffect(() => {
-    if (fetchOnce.current) return
-    fetchOnce.current = true
-    axios
-      .get<{ group: DetGroup, assignmentId: string}>(`${apiUrl}/marcos/next-group`)
-      .then(({ data }) => {
-        
-        setSelectedGroup(data.group)
-        setAssignmentId(parseInt(data.assignmentId))
+  const [loading, setLoading] = useState(true)
+  const fetched = useRef(false)
 
-        setQuestions(applyDet(detMap[data.group], rawTemplates))
+  useEffect(() => {
+    if (fetched.current) return
+    fetched.current = true
+
+    axios
+      .get<{ assignmentId: string }>(`${apiUrl}/marcos/next-group`)
+      .then((resp) => {
+        setAssignmentId(parseInt(resp.data.assignmentId, 10))
       })
-      .catch((err) => console.error('Error fetching group:', err))
-      .finally(() => setLoadingGroup(false))
+      .catch((err) => {
+        console.error('Error fetching assignment:', err)
+      })
+      .finally(() => {
+        // ← Generate your 10 within‐subject prompts here. You can pass any count.
+        setQuestions(generateWithinSubjectQuestions(10))
+        setLoading(false)
+      })
   }, [])
 
   const renderPage = () => {
@@ -104,10 +98,11 @@ function App() {
         )
 
       case PAGES.training:
-        return <TrainingPage setPage={setPage} selectedGroup={selectedGroup as DetGroup}/>
+        // ← training is totally unchanged
+        return <TrainingPage setPage={setPage} />
 
       case PAGES.experiment:
-        if (loadingGroup) {
+        if (loading) {
           return <div className="text-center p-8">Loading…</div>
         }
         return (
@@ -115,7 +110,6 @@ function App() {
             setPage={setPage}
             surveyData={surveyDataRef.current}
             experimentDataRef={experimentDataRef}
-            selectedGroup={selectedGroup as DetGroup}
             questions={questions}
             assignmentId={assignmentId}
             setSurveyMetrics={({ accuracy, test_accuracy, durationMs }) => {
@@ -125,7 +119,6 @@ function App() {
                 test_accuracy,
                 durationMs,
               }
-              
             }}
             clearSurveyData={() => {
               surveyDataRef.current = {
@@ -148,12 +141,10 @@ function App() {
         )
 
       case PAGES.explain:
-        return (
-          <ExplainPage setPage={setPage}/>
-        )
-      
+        return <ExplainPage setPage={setPage} />
+
       default:
-        return <NotFoundPage setPage={setPage} />
+        return <LandingPage setPage={setPage} />
     }
   }
 

@@ -1,79 +1,55 @@
 // src/components/pages/ExperimentPage.tsx
+
 import React, { useState, useRef } from 'react'
 import axios from 'axios'
 import { PageKey, PAGES, SurveyData } from './../../../App'
 import { QuestionScreen } from './components/questionScreen'
-import { ReadyScreen } from './components/readyScreen'
-
-// token helpers
-import {
-  tokenizeInputString,
-  getExpectedTokens
-} from '../../ultilities/tokenizer'
-
-// raw templates & detMap
-import {
-  templates as rawTemplates,
-  detMap,
-  DetGroup
-} from '../../ultilities/questionsTemplates'
-
-
-/**
- * Compute Levenshtein distance between two token arrays.
- */
-function levenshteinDistanceArray(a: string[], b: string[]): number {
-  const rows = b.length + 1
-  const cols = a.length + 1
-  const dp: number[][] = Array.from({ length: rows }, () =>
-    Array(cols).fill(0)
-  )
-
-  for (let i = 0; i < rows; i++) dp[i][0] = i
-  for (let j = 0; j < cols; j++) dp[0][j] = j
-
-  for (let i = 1; i < rows; i++) {
-    for (let j = 1; j < cols; j++) {
-      dp[i][j] =
-        b[i - 1] === a[j - 1]
-          ? dp[i - 1][j - 1]
-          : 1 +
-            Math.min(
-              dp[i - 1][j],    // delete
-              dp[i][j - 1],    // insert
-              dp[i - 1][j - 1] // substitute
-            )
-    }
-  }
-  return dp[rows - 1][cols - 1]
-}
 
 export interface ExperimentPageProps {
   setPage: (page: PageKey) => void
   surveyData: SurveyData
   experimentDataRef: React.MutableRefObject<string[]>
-  selectedGroup: DetGroup
+  /** The literal code-view prompts shown to the user */
   questions: string[]
+  /** The exact expected rendered answers, one per prompt */
+  expected: string[]
+  assignmentId: number
   setSurveyMetrics: (metrics: {
     accuracy: number
     test_accuracy: number[]
     durationMs: number
   }) => void
   clearSurveyData: () => void
-  assignmentId: number
 }
 
 const apiUrl = import.meta.env.VITE_API_URL
+
+const ExperimentReadyScreen: React.FC<{ onStart: () => void }> = ({ onStart }) => (
+  <div className="flex flex-col items-center justify-center w-full px-6 py-10">
+    <h1 className="text-4xl font-extrabold text-white text-center mb-4">
+      Ready for the experiment? 🚀
+    </h1>
+    <p className="text-white text-center max-w-xl mb-6">
+      You’ll see a series of strings—translate each into how it would render, then type your answer.
+    </p>
+    <button
+      onClick={onStart}
+      className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded shadow-md transition-all"
+    >
+      Start Experiment
+    </button>
+  </div>
+)
 
 const ExperimentPage: React.FC<ExperimentPageProps> = ({
   setPage,
   surveyData,
   experimentDataRef,
-  selectedGroup,
   questions,
+  expected,
+  assignmentId,
   setSurveyMetrics,
   clearSurveyData,
-  assignmentId,
 }) => {
   const [started, setStarted] = useState(false)
   const [current, setCurrent] = useState(0)
@@ -81,8 +57,8 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
   const [attemptedSubmit, setAttemptedSubmit] = useState(false)
   const startTimeRef = useRef<number | null>(null)
 
-  const totalQuestions = questions.length
-  const question = questions[current]
+  const total = questions.length
+  const prompt = questions[current]
 
   const handleStart = () => {
     startTimeRef.current = Date.now()
@@ -90,67 +66,54 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
   }
 
   const handleNext = async () => {
-    if (!started || input === '') {
+    if (!started || input.trim() === '') {
       setAttemptedSubmit(true)
       return
     }
 
-    // — Log THIS question’s token‐accuracy —
-    const expectedTokens = getExpectedTokens(rawTemplates[current])
-    const actualTokens = tokenizeInputString(input)
-    const dist = levenshteinDistanceArray(expectedTokens, actualTokens)
-    const maxLen = Math.max(expectedTokens.length, actualTokens.length)
-    const accuracy = maxLen > 0 ? (1 - dist / maxLen) * 100 : 100
-    console.log(
-      `Accuracy for Q${current + 1}: ${accuracy.toFixed(2)}%`,
-      { expectedTokens, actualTokens }
-    )
+    // record this answer
+    experimentDataRef.current[current] = input.trim()
 
-    experimentDataRef.current[current] = input
-
-    if (current < totalQuestions - 1) {
-      setCurrent(current + 1)
+    if (current < total - 1) {
+      setCurrent((c) => c + 1)
       setInput(experimentDataRef.current[current + 1] || '')
       setAttemptedSubmit(false)
       return
     }
 
-    // — Final submission: compute all token‐based accuracies —
-    const finishTime = Date.now()
+    // finalize timing
+    const finish = Date.now()
     const durationMs = startTimeRef.current
-      ? finishTime - startTimeRef.current
+      ? finish - startTimeRef.current
       : 0
 
-    const accuracies = rawTemplates.map((tmpl, idx) => {
-      const expT = getExpectedTokens(tmpl)
-      const actT = tokenizeInputString(experimentDataRef.current[idx] || '')
-      const d = levenshteinDistanceArray(expT, actT)
-      const m = Math.max(expT.length, actT.length)
-      return m > 0 ? (1 - d / m) * 100 : 100
-    })
-    const overallAccuracy =
-      accuracies.reduce((sum, v) => sum + v, 0) / totalQuestions
+    // compute correctness per item (1 = exact match, 0 = not)
+    const results: number[] = expected.map((exp, idx) =>
+      experimentDataRef.current[idx]?.trim() === exp ? 1 : 0
+    )
 
-    // use durationMs instead of Date
+    // sum up number of correct answers
+    const sum = results.reduce((a, b) => a + b, 0)
+    const overall = (sum / total) * 100
+
     setSurveyMetrics({
-      accuracy: overallAccuracy,
-      test_accuracy: accuracies,
+      accuracy: overall,
+      test_accuracy: results,
       durationMs,
     })
 
+    // submit to server
     try {
-      console.log("THIS IS THE DATA: " + assignmentId)
       await axios.post(`${apiUrl}/marcos`, {
         yearsProgramming: surveyData.yearsProgramming,
         age: surveyData.age,
         sex: surveyData.sex,
         language: surveyData.language,
         email: surveyData.email,
-        accuracy: overallAccuracy,
-        task_accuracy: accuracies,
+        accuracy: overall,
+        task_accuracy: results,
         durationMs,
-        group: selectedGroup,
-        assignmentId: assignmentId
+        assignmentId,
       })
       experimentDataRef.current = []
       setInput('')
@@ -161,31 +124,20 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
       setPage(PAGES.thankyou)
     }
   }
-
-  const handleBack = () => {
-    if (current > 0) {
-      setCurrent(current - 1)
-      setInput(experimentDataRef.current[current - 1] || '')
-      setAttemptedSubmit(false)
-    }
-  }
-
+  
   return (
     <div className="flex flex-col items-center justify-center w-full px-6 py-10">
       {!started ? (
-        <ReadyScreen
-          det={detMap[selectedGroup]}
-          onStart={handleStart}
-        />
+        <ExperimentReadyScreen onStart={handleStart} />
       ) : (
         <QuestionScreen
-          question={question}
+          question={prompt}
           current={current}
-          total={totalQuestions}
+          total={total}
           input={input}
           onChange={setInput}
-          onBack={handleBack}
           onNext={handleNext}
+          
           attemptedSubmit={attemptedSubmit}
         />
       )}
