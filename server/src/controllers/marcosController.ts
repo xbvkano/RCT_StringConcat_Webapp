@@ -10,13 +10,17 @@ const prisma = new PrismaClient()
 // Every minute, clean up assignments older than 30 minutes that never completed
 cron.schedule('*/1 * * * *', async () => {
   try {
-    const cutoff = new Date(Date.now() - 30 * 60 * 1000)
-    const { count } = await prisma.assignment.deleteMany({
+    const cutoff = new Date(Date.now() - 1 * 60 * 1000)
+    const { count } = await prisma.assignment.updateMany({
       where: {
         completed: false,
+        abandoned: false,
         createdAt: { lt: cutoff },
       },
-    })
+      data: {
+        abandoned: true,
+      },
+    });
     if (count > 0) {
       console.log(`🗑  Cleaned up ${count} abandoned assignments (older than 30m)`)
     }
@@ -54,7 +58,7 @@ function parseLang(input: string): ProgrammingLanguage {
 /**
  * POST /
  * Handles survey + experiment submission. Expects assignmentId for balancing.
-
+*/
 export const createEntry: RequestHandler = async (req, res, next) => {
   try {
     const {
@@ -64,59 +68,71 @@ export const createEntry: RequestHandler = async (req, res, next) => {
       sex: sexInput,
       language: languageInput,
       email,
-      accuracy,
+      ids,
       task_accuracy,
-      durationMs,
-      group: rawGroup,
-    } = req.body as Record<string, any>
+      durations,
+      totalTime,
+      overallAccuracy,
+    } = req.body as Record<string, any>;
 
-    const parsedYears = parseInt(yearsProgramming, 10)
-    const parsedAge   = parseInt(age, 10)
-    const sexEnum     = parseSex(sexInput)
-    const langEnum    = parseLang(languageInput)
-
-    if (!Object.values(DetGroup).includes(rawGroup)) {
-      res.status(400).json({ error: `Invalid group: ${rawGroup}` })
-      return
+    if (!assignmentId) {
+      res.status(400).json({ error: 'Missing assignmentId' });
+      return;
     }
-    const groupEnum = rawGroup as DetGroup
 
-    console.log('📥 Creating entry with:', { yearsProgramming, age, sexEnum, langEnum, email, accuracy, task_accuracy, durationMs, groupEnum, assignmentId })
+    const parsedExperienceYears = parseInt(yearsProgramming, 10);
+    const parsedAge = parseInt(age, 10);
 
-    const entry = await prisma.$transaction(async tx => {
-      // insert experiment result
+    const experienceYears = isNaN(parsedExperienceYears) ? 0 : parsedExperienceYears;
+    const safeAge = isNaN(parsedAge) ? 0 : parsedAge;
+
+    const sexEnum = parseSex(sexInput);            // must map to 'male' | 'female' | 'other'
+    const langEnum = parseLang(languageInput);      // must map to 'cpp' | 'java' | 'ts' etc
+
+    console.log('📥 Creating entry with:', {
+      assignmentId,
+      experienceYears,
+      safeAge,
+      sexEnum,
+      langEnum,
+      email,
+      ids,
+      task_accuracy,
+      durations,
+      totalTime,
+      overallAccuracy,
+    });
+
+    const entry = await prisma.$transaction(async (tx) => {
       const created = await tx.marcos_Data.create({
         data: {
-          yearsProgramming: parsedYears,
-          age:               parsedAge,
-          sex:               sexEnum,
-          language:          langEnum,
+          experience_years: experienceYears,
+          age: safeAge,
+          sex: sexEnum,
+          language: langEnum,
           email,
-          accuracy:          typeof accuracy === 'string' ? parseFloat(accuracy) : accuracy,
+          accuracy: overallAccuracy ?? 0,
           task_accuracy,
-          durationMs,
-          group:             groupEnum,
+          total_time: totalTime ?? 0,
+          per_task_time: durations,
         },
-      })
+      });
 
-      // mark assignment completed
-      if (assignmentId) {
-        await tx.assignment.update({
-          where: { id: assignmentId },
-          data: { completed: true },
-        })
-      }
+      await tx.assignment.update({
+        where: { id: assignmentId },
+        data: { completed: true },
+      });
 
-      return created
-    })
+      return created;
+    });
 
-    res.status(201).json(entry)
+    res.status(201).json(entry);
   } catch (err) {
-    console.error('❌ Error in createEntry:', err)
-    next(err)
+    console.error('❌ Error in createEntry:', err);
+    next(err);
   }
-}
- */
+};
+ 
 
 export const getNextGroup: RequestHandler = async (req, res, next) => {
   try {
@@ -129,14 +145,14 @@ export const getNextGroup: RequestHandler = async (req, res, next) => {
     const group_id = Number(group_id_raw);
 
     if (
-      !question_size_raw || !syntax_size_raw || !group_id ||
+      !question_size_raw || !syntax_size_raw || !group_id_raw ||
       isNaN(question_size) || isNaN(syntax_size) || isNaN(group_id) ||
       question_size <= 0 || syntax_size <= 0 || group_id <= 0
     ) {
       res.status(400).json({ 
         error: 'Invalid input',
         question_size: question_size_raw,
-        syntax_size: syntax_size_raw
+        syntax_size: syntax_size_raw,
       });
       return;
     }
@@ -147,46 +163,72 @@ export const getNextGroup: RequestHandler = async (req, res, next) => {
       const questionArray = Array.from({ length: question_size }, (_, i) => i + 1);
       const syntaxArray = Array.from({ length: question_size }, (_, i) => i + 1);
 
-      const maxLatinCounter = await tx.assignment.aggregate({
+      const abandonedAssignment = await tx.assignment.findFirst({
         where: {
-          group: group_id
+          group: group_id,
+          abandoned: true,
         },
-        _max: {
-          latinCounter: true,
+        orderBy: {
+          latinCounter: 'asc',
         },
       });
 
-      const lastLatinCounter = maxLatinCounter._max.latinCounter ?? -1;
-      const newLatinCounter = lastLatinCounter + 1;
+      let newLatinCounter: number;
+      let assignmentId: number;
 
-      const newAssignment = await tx.assignment.create({
-        data: {
-          completed: false,
-          latinCounter: newLatinCounter,
-          group: group_id
-        },
-      });
+      if (abandonedAssignment) {
+        await tx.assignment.update({
+          where: { id: abandonedAssignment.id },
+          data: {
+            abandoned: false,
+            completed: false,
+          },
+        });
+
+        newLatinCounter = abandonedAssignment.latinCounter;
+        assignmentId = abandonedAssignment.id;
+      } else {
+        const maxLatinCounter = await tx.assignment.aggregate({
+          where: { group: group_id },
+          _max: {
+            latinCounter: true,
+          },
+        });
+
+        const lastLatinCounter = maxLatinCounter._max.latinCounter ?? -1;
+        newLatinCounter = lastLatinCounter + 1;
+
+        const newAssignment = await tx.assignment.create({
+          data: {
+            completed: false,
+            abandoned: false,
+            latinCounter: newLatinCounter,
+            group: group_id,
+          },
+        });
+
+        assignmentId = newAssignment.id;
+      }
 
       const adjustedQuestionArray = questionArray.map(
         val => ((val + newLatinCounter - 1) % question_size) + 1
       );
 
       const adjustedSyntaxArray = syntaxArray.map(
-        val => (((val - newLatinCounter - 1) % syntax_size) + syntax_size) % syntax_size + 1
-
+        val => ((((val - newLatinCounter - 1) % syntax_size) + syntax_size) % syntax_size) + 1
       );
 
       return {
         adjustedQuestionArray,
         adjustedSyntaxArray,
-        assignmentId: newAssignment.id,
+        assignmentId,
       };
     });
 
     res.json({
       questionArray: adjustedQuestionArray,
       syntaxArray: adjustedSyntaxArray,
-      assignmentId: assignmentId,
+      assignmentId,
     });
   } catch (err) {
     console.error('❌ Error in getNextGroup:', err);

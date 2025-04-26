@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import {
-  // createEntry,
+  createEntry,
   getNextGroup,
   getAllEntriesCsv,
   getEntryById,
@@ -10,7 +10,7 @@ const router = Router();
 
 // Marcos routes
 router.get('/', getAllEntriesCsv);
-// router.post('/', createEntry);
+router.post('/', createEntry);
 router.get('/next-group', getNextGroup);
 router.get('/:id', getEntryById);
 
