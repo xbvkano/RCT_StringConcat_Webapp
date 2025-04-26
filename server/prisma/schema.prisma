@@ -55,4 +55,5 @@ model Marcos_per_question {
   question_id     Int
   user_id         Int
   result          Int
+  time            Int
 }
