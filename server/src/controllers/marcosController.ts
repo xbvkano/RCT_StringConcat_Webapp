@@ -1,13 +1,13 @@
 // src/server/controllers/marcosController.ts
 
 import { RequestHandler } from 'express'
-import { PrismaClient, DetGroup, Sex, ProgrammingLanguage } from '@prisma/client'
+import { PrismaClient, Sex, ProgrammingLanguage } from '@prisma/client'
 import cron from 'node-cron'
 import { stringify } from 'csv-stringify/sync'
 
 const prisma = new PrismaClient()
 
-// Every minute, clean up assignments older than 20 minutes that never completed
+// Every minute, clean up assignments older than 30 minutes that never completed
 cron.schedule('*/1 * * * *', async () => {
   try {
     const cutoff = new Date(Date.now() - 30 * 60 * 1000)
@@ -18,7 +18,7 @@ cron.schedule('*/1 * * * *', async () => {
       },
     })
     if (count > 0) {
-      console.log(`🗑  Cleaned up ${count} abandoned assignments (older than 20m)`)
+      console.log(`🗑  Cleaned up ${count} abandoned assignments (older than 30m)`)
     }
   } catch (err) {
     console.error('Error cleaning up abandoned assignments:', err)
@@ -54,7 +54,7 @@ function parseLang(input: string): ProgrammingLanguage {
 /**
  * POST /
  * Handles survey + experiment submission. Expects assignmentId for balancing.
- */
+
 export const createEntry: RequestHandler = async (req, res, next) => {
   try {
     const {
@@ -116,59 +116,84 @@ export const createEntry: RequestHandler = async (req, res, next) => {
     next(err)
   }
 }
-
-/**
- * GET /next-group
- * Reserves a slot by inserting into Assignment.
  */
-export const getNextGroup: RequestHandler = async (_req, res, next) => {
+
+export const getNextGroup: RequestHandler = async (req, res, next) => {
   try {
-    const ACTIVE_GROUPS: DetGroup[] = [
-      DetGroup.AngleBracket,
-      DetGroup.Backslash,
-      DetGroup.TemplateLiteral,
-    ]
-    console.log('🔄 getNextGroup called')
+    const question_size_raw = req.query.question_size;
+    const syntax_size_raw = req.query.syntax_size;
+    const group_id_raw = req.query.group_id;
 
-    const { chosenGroup, assignmentId } = await prisma.$transaction(async tx => {
-      // ensure single concurrent access
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(42)`
+    const question_size = Number(question_size_raw);
+    const syntax_size = Number(syntax_size_raw);
+    const group_id = Number(group_id_raw);
 
-      // count only completed assignments for balance
-      const counts = await tx.assignment.groupBy({
-        by: ['group'],
-        _count: { group: true },
-      })
+    if (
+      !question_size_raw || !syntax_size_raw || !group_id ||
+      isNaN(question_size) || isNaN(syntax_size) || isNaN(group_id) ||
+      question_size <= 0 || syntax_size <= 0 || group_id <= 0
+    ) {
+      res.status(400).json({ 
+        error: 'Invalid input',
+        question_size: question_size_raw,
+        syntax_size: syntax_size_raw
+      });
+      return;
+    }
 
-      console.log("Counts: " + JSON.stringify(counts))
+    const { adjustedQuestionArray, adjustedSyntaxArray, assignmentId } = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(42)`;
 
-      // build a map of counts
-      const countMap: Record<DetGroup, number> = Object.fromEntries(
-        ACTIVE_GROUPS.map(g => [g, 0])
-      ) as Record<DetGroup, number>
+      const questionArray = Array.from({ length: question_size }, (_, i) => i + 1);
+      const syntaxArray = Array.from({ length: question_size }, (_, i) => i + 1);
 
-      counts.forEach(c => {
-        const g = c.group as DetGroup
-        if (ACTIVE_GROUPS.includes(g)) countMap[g] = c._count.group
-      })
+      const maxLatinCounter = await tx.assignment.aggregate({
+        where: {
+          group: group_id
+        },
+        _max: {
+          latinCounter: true,
+        },
+      });
 
-      const minCount = Math.min(...ACTIVE_GROUPS.map(g => countMap[g]))
-      const candidates = ACTIVE_GROUPS.filter(g => countMap[g] === minCount)
-      const idx = Math.floor(Math.random() * candidates.length)
-      const chosen = candidates[idx]
-      console.log("Chosen group: " + chosen)
-      // reserve slot
-      const { id } = await tx.assignment.create({ data: { group: chosen } })
+      const lastLatinCounter = maxLatinCounter._max.latinCounter ?? -1;
+      const newLatinCounter = lastLatinCounter + 1;
 
-      return { chosenGroup: chosen, assignmentId: id }
-    })
+      const newAssignment = await tx.assignment.create({
+        data: {
+          completed: false,
+          latinCounter: newLatinCounter,
+          group: group_id
+        },
+      });
 
-    res.json({ group: chosenGroup, assignmentId })
+      const adjustedQuestionArray = questionArray.map(
+        val => ((val + newLatinCounter - 1) % question_size) + 1
+      );
+
+      const adjustedSyntaxArray = syntaxArray.map(
+        val => (((val - newLatinCounter - 1) % syntax_size) + syntax_size) % syntax_size + 1
+
+      );
+
+      return {
+        adjustedQuestionArray,
+        adjustedSyntaxArray,
+        assignmentId: newAssignment.id,
+      };
+    });
+
+    res.json({
+      questionArray: adjustedQuestionArray,
+      syntaxArray: adjustedSyntaxArray,
+      assignmentId: assignmentId,
+    });
   } catch (err) {
-    console.error('❌ Error in getNextGroup:', err)
-    next(err)
+    console.error('❌ Error in getNextGroup:', err);
+    next(err);
   }
-}
+};
+
 
 /**
  * GET /:id

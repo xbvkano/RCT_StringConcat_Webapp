@@ -10,12 +10,7 @@ import ExperimentPage from './components/pages/experiment'
 import ThankYouPage from './components/pages/thankyou'
 import ExplainPage from './components/pages/explain'
 import { ProgrammingLanguage } from '../../shared/languageOptions'
-
-// ← now also import the QuestionItem type
-import {
-  generateWithinSubjectQuestions,
-  QuestionItem,
-} from './components/ultilities/questionsTemplates'
+import { buildQuestionSet, QuestionItem, GroupKey, groups } from './components/ultilities/questionsTemplates'
 
 export const PAGES = {
   landing: 'landing',
@@ -39,12 +34,20 @@ export interface SurveyData {
   durations?: number[]
 }
 
+export enum GroupEnum {
+  newline = 1,
+  tab = 2,
+}
+
 const apiUrl = import.meta.env.VITE_API_URL
+
+const groupMap: Record<GroupEnum, GroupKey> = {
+  [GroupEnum.newline]: 'newline',
+  [GroupEnum.tab]: 'tab',
+}
 
 function App() {
   const [page, setPage] = useState<PageKey>(PAGES.landing)
-
-  // Persisted survey data
   const surveyDataRef = useRef<SurveyData>({
     yearsProgramming: '',
     age: '',
@@ -52,15 +55,11 @@ function App() {
     language: '',
     email: '',
   })
-
-  // Persisted experiment state
   const experimentDataRef = useRef<string[]>([])
-  const idsRef         = useRef<string[]>([])
-  const accuracyRef    = useRef<boolean[]>([])
-  const durationsRef   = useRef<number[]>([])
+  const idsRef = useRef<string[]>([])
+  const accuracyRef = useRef<boolean[]>([])
+  const durationsRef = useRef<number[]>([])
 
-  // Questions & assignment
-  // ← questions are now QuestionItem[]
   const [questions, setQuestions] = useState<QuestionItem[]>([])
   const [assignmentId, setAssignmentId] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -70,43 +69,60 @@ function App() {
     if (fetched.current) return
     fetched.current = true
 
-    axios
-      .get<{ assignmentId: string }>(`${apiUrl}/marcos/next-group`)
-      .then(resp => {
-        setAssignmentId(parseInt(resp.data.assignmentId, 10))
-      })
-      .catch(err => {
-        console.error('Error fetching assignment:', err)
-      })
-      .finally(() => {
-        // ← now returns QuestionItem[]
-        setQuestions(generateWithinSubjectQuestions())
-        setLoading(false)
-      })
+    async function fetchGroupQuestions(groupId: GroupEnum) {
+      const groupKey = groupMap[groupId];
+      const question_size = groups[groupKey].templates.length;
+      const syntax_size = groups[groupKey].syntaxes.length;
+
+      console.log("question_size: " + question_size + "\nsyntax_size: " + syntax_size)
+
+      const response = await axios.get(`${apiUrl}/marcos/next-group`, {
+        params: {
+          question_size,
+          syntax_size,
+          group_id: groupId,
+        },
+      });
+
+      const { questionArray, syntaxArray, assignmentId } = response.data;
+
+      const questions = buildQuestionSet(groupKey, questionArray, syntaxArray);
+
+      return { questions, assignmentId };
+    }
+
+    async function loadQuestions() {
+      try {
+        const promises = Object.values(GroupEnum).filter(id => typeof id === 'number').map(groupId => 
+          fetchGroupQuestions(groupId as GroupEnum)
+        );
+
+        const results = await Promise.all(promises);
+
+        const allQuestions = results.flatMap(r => r.questions);
+
+        setQuestions(allQuestions);
+        setAssignmentId(results[0]?.assignmentId || 0);
+      } catch (error) {
+        console.error('Error loading questions:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadQuestions();
   }, [])
 
   const renderPage = () => {
     switch (page) {
       case PAGES.landing:
         return <LandingPage setPage={setPage} />
-
       case PAGES.info:
         return <InfoPage setPage={setPage} />
-
       case PAGES.survey:
-        return (
-          <SurveyPage
-            setPage={setPage}
-            surveyData={surveyDataRef.current}
-            setSurveyData={data => {
-              surveyDataRef.current = data
-            }}
-          />
-        )
-
+        return <SurveyPage setPage={setPage} surveyData={surveyDataRef.current} setSurveyData={data => { surveyDataRef.current = data }} />
       case PAGES.training:
         return <TrainingPage setPage={setPage} />
-
       case PAGES.experiment:
         if (loading) {
           return <div className="text-center p-8">Loading…</div>
@@ -119,7 +135,6 @@ function App() {
             idsRef={idsRef}
             durationsRef={durationsRef}
             accuracyRef={accuracyRef}
-            // pass down the QuestionItem[] array
             questions={questions}
             assignmentId={assignmentId}
             setSurveyMetrics={({ ids, accuracyArray, durations }) => {
@@ -141,18 +156,10 @@ function App() {
             }}
           />
         )
-
       case PAGES.thankyou:
-        return (
-          <ThankYouPage
-            setPage={setPage}
-            surveyData={surveyDataRef.current}
-          />
-        )
-
+        return <ThankYouPage setPage={setPage} surveyData={surveyDataRef.current} />
       case PAGES.explain:
         return <ExplainPage setPage={setPage} />
-
       default:
         return <LandingPage setPage={setPage} />
     }

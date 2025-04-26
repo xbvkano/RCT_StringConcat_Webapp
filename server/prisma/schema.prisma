@@ -9,23 +9,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-///— reify your determinant groups as a Prisma enum —///
-/// names match your DetGroup values in code
-enum DetGroup {
-  Backslash         // \SPECIAL
-  SingleQuote       // 'SPECIAL'
-  DoubleQuote       // "SPECIAL"
-  TemplateLiteral   // `${SPECIAL}`
-  EscapedPrefix     // \\SPECIAL
-  BacktickDet         // `SPECIAL`
-  AngleBracket      // <SPECIAL>
-  DollarSign        // $SPECIAL
-  TildeWrapped      // ~SPECIAL~
-  HashPrefix        // #SPECIAL
-  TagSlash          // / \ < >SPECIAL
-  HashSuffix        // SPECIAL#
-}
-
 ///— your existing enums —///
 enum ProgrammingLanguage {
   cpp
@@ -44,23 +27,31 @@ enum Sex {
 }
 
 model Assignment {
-  id         Int       @id @default(autoincrement())
-  group      String
-  completed  Boolean   @default(false)
-  createdAt  DateTime  @default(now())
+  id            Int       @id @default(autoincrement())
+  latinCounter  Int
+  group         Int
+  completed     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
 }
 
 ///— your model with `group` as a DetGroup instead of Int —///
 model Marcos_Data {
   id               Int                  @id @default(autoincrement())
-  yearsProgramming Int
+  experience_years Int
   age              Int
   sex              Sex
   language         ProgrammingLanguage
   email            String?              // optional
   accuracy         Float
-  task_accuracy    Float[]
-  durationMs       Int                  @default(0)
+  task_accuracy    Boolean[]
+  total_time       Int                  
+  per_task_time    Int[]
   created_at       DateTime             @default(now())
-  group            DetGroup             @default(Backslash)
+}
+
+model Marcos_per_question {
+  id              Int                   @id @default(autoincrement())
+  question_id     Int
+  user_id         Int
+  result          Int
 }

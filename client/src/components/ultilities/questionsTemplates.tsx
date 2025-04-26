@@ -170,3 +170,34 @@ export function generateWithinSubjectQuestions(): QuestionItem[] {
   })
   return out
 }
+
+
+export function buildQuestionSet(
+  group: GroupKey,
+  questionArray: number[],
+  syntaxArray: number[]
+): QuestionItem[] {
+  const out: QuestionItem[] = [];
+
+  const { templates, syntaxes, placeholder } = groups[group];
+
+  console.log("Test: " + "\n" + group + "\n" + questionArray + "\n" + syntaxArray + "\n" + templates + "\n" + syntaxes + "\n" +placeholder)
+
+  for (let i = 0; i < questionArray.length; i++) {
+    const questionIdx = questionArray[i] - 1;
+    const syntaxIdx = syntaxArray[i] - 1;
+
+    const template = templates[questionIdx];
+    const syntax = syntaxes[syntaxIdx];
+
+    const id = template.id.padStart(2, '0') + syntax.id.padStart(2, '0');
+    const text = template.text.replace(
+      new RegExp(`\\{${placeholder}\\}`, 'g'),
+      syntax.text
+    );
+
+    out.push({ id, text });
+  }
+
+  return out;
+}
