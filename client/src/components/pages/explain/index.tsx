@@ -1,17 +1,14 @@
 // src/components/pages/ExplainPage.tsx
 import React from 'react'
 import { PageKey, PAGES } from './../../../App'
-import im1 from "/images/example_1.png"
-import im2 from '/images/example_2.png'
-import im3 from '/images/example_3.png'
+import im1 from "/images/training_01.png"
+
 interface ExplainPageProps {
   setPage: (page: PageKey) => void
 }
 
 const examples = [
-  { src: im1, alt: 'Some tokens correct (green), some incorrect (red)' },
-  { src: im2, alt: 'All tokens correct' },
-  { src: im3, alt: 'Translating newline and tab correctly' },
+  { src: im1, alt: 'question template' },
 ]
 
 export const ExplainPage: React.FC<ExplainPageProps> = ({ setPage }) => {
@@ -29,26 +26,39 @@ export const ExplainPage: React.FC<ExplainPageProps> = ({ setPage }) => {
 
       {/* Title */}
       <h1 className="text-4xl font-extrabold text-center mb-8 border-b border-gray-700 pb-2">
-        How the Experiment Works
+        How to Interact with the Experiment
       </h1>
 
-      {/* Explanation Text */}
-      <div className="max-w-2xl text-lg leading-relaxed space-y-6 mb-8">
+      {/* Instructions */}
+      <div className="max-w-2xl text-lg leading-relaxed space-y-6 mb-8 text-center">
         <p>
-          You will see snippets of code with special placeholders like <code className="bg-gray-800 px-2 py-1 rounded">{`/SPECIAL`}</code>
-          or <code className="bg-gray-800 px-2 py-1 rounded">{`<SPECIAL>`}</code>. Where <code className="bg-gray-800 px-2 py-1 rounded">SPECIAL</code> 
-           will be one of the special characters from the previous page. In training, you'll replace these placeholders
-          with actual tokens (newline, tab, backslash, quotes).
-        </p>
-        <p>
-          The on-screen keyboard lets you type tokens one at a time. Green highlights mean you matched the expected token, red means a mistake.
-        </p>
-        <p>
-          Below are examples of how the feedback looks during training:
+          During the experiment, you will see small code snippets that contain special characters disguised in different syntaxes.
+          Your task is to figure out how many <strong>lines</strong> or <strong>tabs</strong> are created based on what you see.
         </p>
 
-        {/* Example Images */}
-        <div className="">
+        <p>
+          To keep the experience fast and smooth, we recommend placing one hand over the number keys
+          <code className="bg-gray-800 px-2 py-1 mx-1 rounded">1</code> through 
+          <code className="bg-gray-800 px-2 py-1 mx-1 rounded">4</code>,
+          and the other hand over the 
+          <code className="bg-gray-800 px-2 py-1 mx-1 rounded">Enter</code> key.
+        </p>
+
+        <p>
+          Think carefully about your answer, then type the number that matches your count and press <strong>Enter</strong> to submit.
+        </p>
+
+        <p>
+          If you accidentally press the wrong number, you can press
+          <code className="bg-gray-800 px-2 py-1 mx-1 rounded">Backspace</code> to erase your input before submitting.
+        </p>
+
+        <p>
+          Here's an example of how it looks during training:
+        </p>
+
+        {/* Example Image */}
+        <div>
           {examples.map((ex, idx) => (
             <div key={idx} className="flex flex-col items-center">
               <img src={ex.src} alt={ex.alt} className="rounded shadow-md mb-2 max-h-96" />
@@ -58,7 +68,7 @@ export const ExplainPage: React.FC<ExplainPageProps> = ({ setPage }) => {
         </div>
 
         <p>
-          Once you’re comfortable, you’ll move on to the actual experiment where we measure accuracy and speed.
+          Once you're comfortable, you'll move on to the main experiment where your accuracy and speed will be measured.
         </p>
       </div>
 

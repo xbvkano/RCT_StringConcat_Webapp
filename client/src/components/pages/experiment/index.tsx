@@ -78,7 +78,9 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
   
     // normal progression
     idsRef.current[current] = currentItem.id
-  
+      
+
+
     const now = Date.now()
     if (durationsRef.current[current] == null) {
       const delta = now - questionStartRef.current
@@ -172,7 +174,7 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
       ) : (
         <>
           <QuestionScreen
-            question={currentItem.text}
+            question={currentItem}
             current={current}
             total={total}
             input={input}

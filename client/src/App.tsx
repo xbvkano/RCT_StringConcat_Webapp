@@ -159,7 +159,7 @@ function App() {
           />
         )
       case PAGES.thankyou:
-        return <ThankYouPage setPage={setPage} surveyData={surveyDataRef.current} />
+        return <ThankYouPage />
       case PAGES.explain:
         return <ExplainPage setPage={setPage} />
       default:

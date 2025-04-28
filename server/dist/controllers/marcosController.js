@@ -49,7 +49,7 @@ var client_1 = require("@prisma/client");
 var node_cron_1 = __importDefault(require("node-cron"));
 var sync_1 = require("csv-stringify/sync");
 var prisma = new client_1.PrismaClient();
-// Every minute, clean up assignments older than 20 minutes that never completed
+// Every minute, clean up assignments older than 30 minutes that never completed
 node_cron_1.default.schedule('*/1 * * * *', function () { return __awaiter(void 0, void 0, void 0, function () {
     var cutoff, count, err_1;
     return __generator(this, function (_a) {
@@ -57,16 +57,20 @@ node_cron_1.default.schedule('*/1 * * * *', function () { return __awaiter(void 
             case 0:
                 _a.trys.push([0, 2, , 3]);
                 cutoff = new Date(Date.now() - 30 * 60 * 1000);
-                return [4 /*yield*/, prisma.assignment.deleteMany({
+                return [4 /*yield*/, prisma.assignment.updateMany({
                         where: {
                             completed: false,
+                            abandoned: false,
                             createdAt: { lt: cutoff },
+                        },
+                        data: {
+                            abandoned: true,
                         },
                     })];
             case 1:
                 count = (_a.sent()).count;
                 if (count > 0) {
-                    console.log("\uD83D\uDDD1  Cleaned up ".concat(count, " abandoned assignments (older than 20m)"));
+                    console.log("\uD83D\uDDD1  Cleaned up ".concat(count, " abandoned assignments (older than 30m)"));
                 }
                 return [3 /*break*/, 3];
             case 2:
@@ -104,54 +108,75 @@ function parseLang(input) {
 /**
  * POST /
  * Handles survey + experiment submission. Expects assignmentId for balancing.
- */
+*/
 var createEntry = function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var _a, assignmentId_1, yearsProgramming, age, sexInput, languageInput, email_1, accuracy_1, task_accuracy_1, durationMs_1, rawGroup, parsedYears_1, parsedAge_1, sexEnum_1, langEnum_1, groupEnum_1, entry, err_2;
+    var _a, assignmentId_1, yearsProgramming, age, sexInput, languageInput, email_1, ids_1, task_accuracy_1, durations_1, totalTime_1, overallAccuracy_1, parsedExperienceYears, parsedAge, experienceYears_1, safeAge_1, sexEnum_1, langEnum_1, entry, err_2;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0:
                 _b.trys.push([0, 2, , 3]);
-                _a = req.body, assignmentId_1 = _a.assignmentId, yearsProgramming = _a.yearsProgramming, age = _a.age, sexInput = _a.sex, languageInput = _a.language, email_1 = _a.email, accuracy_1 = _a.accuracy, task_accuracy_1 = _a.task_accuracy, durationMs_1 = _a.durationMs, rawGroup = _a.group;
-                parsedYears_1 = parseInt(yearsProgramming, 10);
-                parsedAge_1 = parseInt(age, 10);
-                sexEnum_1 = parseSex(sexInput);
-                langEnum_1 = parseLang(languageInput);
-                if (!Object.values(client_1.DetGroup).includes(rawGroup)) {
-                    res.status(400).json({ error: "Invalid group: ".concat(rawGroup) });
+                _a = req.body, assignmentId_1 = _a.assignmentId, yearsProgramming = _a.yearsProgramming, age = _a.age, sexInput = _a.sex, languageInput = _a.language, email_1 = _a.email, ids_1 = _a.ids, task_accuracy_1 = _a.task_accuracy, durations_1 = _a.durations, totalTime_1 = _a.totalTime, overallAccuracy_1 = _a.overallAccuracy;
+                if (!assignmentId_1) {
+                    res.status(400).json({ error: 'Missing assignmentId' });
                     return [2 /*return*/];
                 }
-                groupEnum_1 = rawGroup;
-                console.log('📥 Creating entry with:', { yearsProgramming: yearsProgramming, age: age, sexEnum: sexEnum_1, langEnum: langEnum_1, email: email_1, accuracy: accuracy_1, task_accuracy: task_accuracy_1, durationMs: durationMs_1, groupEnum: groupEnum_1, assignmentId: assignmentId_1 });
+                parsedExperienceYears = parseInt(yearsProgramming, 10);
+                parsedAge = parseInt(age, 10);
+                experienceYears_1 = isNaN(parsedExperienceYears) ? 0 : parsedExperienceYears;
+                safeAge_1 = isNaN(parsedAge) ? 0 : parsedAge;
+                sexEnum_1 = parseSex(sexInput);
+                langEnum_1 = parseLang(languageInput);
+                console.log('📥 Creating entry with:', {
+                    assignmentId: assignmentId_1,
+                    experienceYears: experienceYears_1,
+                    safeAge: safeAge_1,
+                    sexEnum: sexEnum_1,
+                    langEnum: langEnum_1,
+                    email: email_1,
+                    ids: ids_1,
+                    task_accuracy: task_accuracy_1,
+                    durations: durations_1,
+                    totalTime: totalTime_1,
+                    overallAccuracy: overallAccuracy_1,
+                });
                 return [4 /*yield*/, prisma.$transaction(function (tx) { return __awaiter(void 0, void 0, void 0, function () {
-                        var created;
+                        var created, perQuestionData;
                         return __generator(this, function (_a) {
                             switch (_a.label) {
                                 case 0: return [4 /*yield*/, tx.marcos_Data.create({
                                         data: {
-                                            yearsProgramming: parsedYears_1,
-                                            age: parsedAge_1,
+                                            experience_years: experienceYears_1,
+                                            age: safeAge_1,
                                             sex: sexEnum_1,
                                             language: langEnum_1,
                                             email: email_1,
-                                            accuracy: typeof accuracy_1 === 'string' ? parseFloat(accuracy_1) : accuracy_1,
+                                            accuracy: overallAccuracy_1 !== null && overallAccuracy_1 !== void 0 ? overallAccuracy_1 : 0,
                                             task_accuracy: task_accuracy_1,
-                                            durationMs: durationMs_1,
-                                            group: groupEnum_1,
+                                            task_ids: ids_1,
+                                            total_time: totalTime_1 !== null && totalTime_1 !== void 0 ? totalTime_1 : 0,
+                                            per_task_time: durations_1,
                                         },
-                                    })
-                                    // mark assignment completed
-                                ];
+                                    })];
                                 case 1:
                                     created = _a.sent();
-                                    if (!assignmentId_1) return [3 /*break*/, 3];
                                     return [4 /*yield*/, tx.assignment.update({
                                             where: { id: assignmentId_1 },
                                             data: { completed: true },
                                         })];
                                 case 2:
                                     _a.sent();
-                                    _a.label = 3;
-                                case 3: return [2 /*return*/, created];
+                                    perQuestionData = ids_1.map(function (questionId, index) { return ({
+                                        question_id: parseInt(questionId, 10),
+                                        user_id: created.id,
+                                        result: task_accuracy_1[index],
+                                        time: durations_1[index],
+                                    }); });
+                                    return [4 /*yield*/, tx.marcos_per_question.createMany({
+                                            data: perQuestionData,
+                                        })];
+                                case 3:
+                                    _a.sent();
+                                    return [2 /*return*/, created];
                             }
                         });
                     }); })];
@@ -169,62 +194,103 @@ var createEntry = function (req, res, next) { return __awaiter(void 0, void 0, v
     });
 }); };
 exports.createEntry = createEntry;
-/**
- * GET /next-group
- * Reserves a slot by inserting into Assignment.
- */
-var getNextGroup = function (_req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var ACTIVE_GROUPS_1, _a, chosenGroup, assignmentId, err_3;
+var getNextGroup = function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
+    var question_size_raw, syntax_size_raw, group_id_raw, question_size_1, syntax_size_1, group_id_1, _a, adjustedQuestionArray, adjustedSyntaxArray, assignmentId, err_3;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0:
                 _b.trys.push([0, 2, , 3]);
-                ACTIVE_GROUPS_1 = [
-                    client_1.DetGroup.AngleBracket,
-                    client_1.DetGroup.Backslash,
-                    client_1.DetGroup.TemplateLiteral,
-                ];
-                console.log('🔄 getNextGroup called');
+                console.log("Getting next group");
+                question_size_raw = req.query.question_size;
+                syntax_size_raw = req.query.syntax_size;
+                group_id_raw = req.query.group_id;
+                question_size_1 = Number(question_size_raw);
+                syntax_size_1 = Number(syntax_size_raw);
+                group_id_1 = Number(group_id_raw);
+                if (!question_size_raw || !syntax_size_raw || !group_id_raw ||
+                    isNaN(question_size_1) || isNaN(syntax_size_1) || isNaN(group_id_1) ||
+                    question_size_1 <= 0 || syntax_size_1 <= 0 || group_id_1 <= 0) {
+                    res.status(400).json({
+                        error: 'Invalid input',
+                        question_size: question_size_raw,
+                        syntax_size: syntax_size_raw,
+                    });
+                    return [2 /*return*/];
+                }
                 return [4 /*yield*/, prisma.$transaction(function (tx) { return __awaiter(void 0, void 0, void 0, function () {
-                        var counts, countMap, minCount, candidates, idx, chosen, id;
-                        return __generator(this, function (_a) {
-                            switch (_a.label) {
-                                case 0: 
-                                // ensure single concurrent access
-                                return [4 /*yield*/, tx.$executeRaw(templateObject_1 || (templateObject_1 = __makeTemplateObject(["SELECT pg_advisory_xact_lock(42)"], ["SELECT pg_advisory_xact_lock(42)"
-                                        // count only completed assignments for balance
-                                    ])))];
+                        var questionArray, syntaxArray, abandonedAssignment, newLatinCounter, assignmentId, maxLatinCounter, lastLatinCounter, newAssignment, adjustedQuestionArray, adjustedSyntaxArray;
+                        var _a;
+                        return __generator(this, function (_b) {
+                            switch (_b.label) {
+                                case 0: return [4 /*yield*/, tx.$executeRaw(templateObject_1 || (templateObject_1 = __makeTemplateObject(["SELECT pg_advisory_xact_lock(42)"], ["SELECT pg_advisory_xact_lock(42)"])))];
                                 case 1:
-                                    // ensure single concurrent access
-                                    _a.sent();
-                                    return [4 /*yield*/, tx.assignment.groupBy({
-                                            by: ['group'],
-                                            _count: { group: true },
+                                    _b.sent();
+                                    questionArray = Array.from({ length: question_size_1 }, function (_, i) { return i + 1; });
+                                    syntaxArray = Array.from({ length: question_size_1 }, function (_, i) { return i + 1; });
+                                    return [4 /*yield*/, tx.assignment.findFirst({
+                                            where: {
+                                                group: group_id_1,
+                                                abandoned: true,
+                                            },
+                                            orderBy: {
+                                                latinCounter: 'asc',
+                                            },
                                         })];
                                 case 2:
-                                    counts = _a.sent();
-                                    console.log("Counts: " + JSON.stringify(counts));
-                                    countMap = Object.fromEntries(ACTIVE_GROUPS_1.map(function (g) { return [g, 0]; }));
-                                    counts.forEach(function (c) {
-                                        var g = c.group;
-                                        if (ACTIVE_GROUPS_1.includes(g))
-                                            countMap[g] = c._count.group;
-                                    });
-                                    minCount = Math.min.apply(Math, ACTIVE_GROUPS_1.map(function (g) { return countMap[g]; }));
-                                    candidates = ACTIVE_GROUPS_1.filter(function (g) { return countMap[g] === minCount; });
-                                    idx = Math.floor(Math.random() * candidates.length);
-                                    chosen = candidates[idx];
-                                    console.log("Chosen group: " + chosen);
-                                    return [4 /*yield*/, tx.assignment.create({ data: { group: chosen } })];
+                                    abandonedAssignment = _b.sent();
+                                    if (!abandonedAssignment) return [3 /*break*/, 4];
+                                    return [4 /*yield*/, tx.assignment.update({
+                                            where: { id: abandonedAssignment.id },
+                                            data: {
+                                                abandoned: false,
+                                                completed: false,
+                                            },
+                                        })];
                                 case 3:
-                                    id = (_a.sent()).id;
-                                    return [2 /*return*/, { chosenGroup: chosen, assignmentId: id }];
+                                    _b.sent();
+                                    newLatinCounter = abandonedAssignment.latinCounter;
+                                    assignmentId = abandonedAssignment.id;
+                                    return [3 /*break*/, 7];
+                                case 4: return [4 /*yield*/, tx.assignment.aggregate({
+                                        where: { group: group_id_1 },
+                                        _max: {
+                                            latinCounter: true,
+                                        },
+                                    })];
+                                case 5:
+                                    maxLatinCounter = _b.sent();
+                                    lastLatinCounter = (_a = maxLatinCounter._max.latinCounter) !== null && _a !== void 0 ? _a : -1;
+                                    newLatinCounter = lastLatinCounter + 1;
+                                    return [4 /*yield*/, tx.assignment.create({
+                                            data: {
+                                                completed: false,
+                                                abandoned: false,
+                                                latinCounter: newLatinCounter,
+                                                group: group_id_1,
+                                            },
+                                        })];
+                                case 6:
+                                    newAssignment = _b.sent();
+                                    assignmentId = newAssignment.id;
+                                    _b.label = 7;
+                                case 7:
+                                    adjustedQuestionArray = questionArray.map(function (val) { return ((val + newLatinCounter - 1) % question_size_1) + 1; });
+                                    adjustedSyntaxArray = syntaxArray.map(function (val) { return ((((val - newLatinCounter - 1) % syntax_size_1) + syntax_size_1) % syntax_size_1) + 1; });
+                                    return [2 /*return*/, {
+                                            adjustedQuestionArray: adjustedQuestionArray,
+                                            adjustedSyntaxArray: adjustedSyntaxArray,
+                                            assignmentId: assignmentId,
+                                        }];
                             }
                         });
                     }); })];
             case 1:
-                _a = _b.sent(), chosenGroup = _a.chosenGroup, assignmentId = _a.assignmentId;
-                res.json({ group: chosenGroup, assignmentId: assignmentId });
+                _a = _b.sent(), adjustedQuestionArray = _a.adjustedQuestionArray, adjustedSyntaxArray = _a.adjustedSyntaxArray, assignmentId = _a.assignmentId;
+                res.json({
+                    questionArray: adjustedQuestionArray,
+                    syntaxArray: adjustedSyntaxArray,
+                    assignmentId: assignmentId,
+                });
                 return [3 /*break*/, 3];
             case 2:
                 err_3 = _b.sent();

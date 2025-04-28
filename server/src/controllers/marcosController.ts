@@ -10,7 +10,7 @@ const prisma = new PrismaClient()
 // Every minute, clean up assignments older than 30 minutes that never completed
 cron.schedule('*/1 * * * *', async () => {
   try {
-    const cutoff = new Date(Date.now() - 1 * 60 * 1000)
+    const cutoff = new Date(Date.now() - 30 * 60 * 1000)
     const { count } = await prisma.assignment.updateMany({
       where: {
         completed: false,
@@ -113,6 +113,7 @@ export const createEntry: RequestHandler = async (req, res, next) => {
           email,
           accuracy: overallAccuracy ?? 0,
           task_accuracy,
+          task_ids: ids,
           total_time: totalTime ?? 0,
           per_task_time: durations,
         },
@@ -121,6 +122,18 @@ export const createEntry: RequestHandler = async (req, res, next) => {
       await tx.assignment.update({
         where: { id: assignmentId },
         data: { completed: true },
+      });
+
+      // 🔥 New: insert all question rows into Marcos_per_question
+      const perQuestionData = ids.map((questionId: string, index: number) => ({
+        question_id: parseInt(questionId, 10),
+        user_id: created.id,
+        result: task_accuracy[index],
+        time: durations[index],
+      }));
+
+      await tx.marcos_per_question.createMany({
+        data: perQuestionData,
       });
 
       return created;

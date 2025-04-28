@@ -45,6 +45,7 @@ model Marcos_Data {
   email            String?              // optional
   accuracy         Float
   task_accuracy    Boolean[]
+  task_ids         String[]
   total_time       Int                  
   per_task_time    Int[]
   created_at       DateTime             @default(now())
@@ -54,6 +55,6 @@ model Marcos_per_question {
   id              Int                   @id @default(autoincrement())
   question_id     Int
   user_id         Int
-  result          Int
+  result          Boolean
   time            Int
 }

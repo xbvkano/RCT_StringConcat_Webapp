@@ -55,7 +55,7 @@ const SurveyPage: React.FC<SurveyPageProps> = ({ setPage, surveyData, setSurveyD
       <div className="w-full flex justify-start mb-4">
         <button
           className="text-white text-xl px-3 py-1 rounded hover:bg-blue-700 hover:text-white transition-colors border border-white/20 shadow-sm"
-          onClick={() => setPage(PAGES.info)}
+          onClick={() => setPage(PAGES.explain)}
         >
           ←
         </button>

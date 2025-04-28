@@ -6,17 +6,17 @@ import React, {
   useCallback
 } from 'react'
 import { KeyboardDisplay } from '../../../ultilities/keyboard'
-import { groups, GroupKey } from '../../../ultilities/questionsTemplates'
+import { groups, GroupKey, QuestionItem } from '../../../ultilities/questionsTemplates'
 
 export interface QuestionProps {
-  question: string
+  question: QuestionItem
   current: number
   total: number
   input: string
   onChange: (val: string) => void
   onNext: () => void
   attemptedSubmit: boolean
-  submitted: boolean  // 🔥 added this prop
+  submitted: boolean
 }
 
 export const QuestionScreen: React.FC<QuestionProps> = ({
@@ -26,41 +26,53 @@ export const QuestionScreen: React.FC<QuestionProps> = ({
   onChange,
   onNext,
   attemptedSubmit,
-  submitted,  // 🔥 consume it
+  submitted,
 }) => {
   const [typedTokens, setTypedTokens] = useState<string[]>([])
 
   useEffect(() => {
     setTypedTokens([])
-  }, [question])
+  }, [question.text])
 
   const displayValue = typedTokens.join('')
   useEffect(() => {
     onChange(displayValue)
   }, [displayValue, onChange])
 
-  const syntaxMap = useMemo(() => {
-    const m: Record<string, GroupKey> = {};
-    (Object.keys(groups) as GroupKey[]).forEach((g) => {
-      groups[g].syntaxes.forEach((syntaxCfg) => {
-        m[syntaxCfg.text] = g
-      })
-    })
-    return m
-  }, [])
+  const [currentGroup, currentSyntax] = useMemo(() => {
+    const groupId = question.id.slice(0, 2)
+    const syntaxId = question.id.slice(4, 6)
 
-  const [currentSyntax, currentGroup] = useMemo(() => {
-    for (const [syn, grp] of Object.entries(syntaxMap)) {
-      if (question.includes(syn)) {
-        return [syn, grp] as [string, GroupKey]
+    let foundGroup: GroupKey | null = null
+    for (const key of Object.keys(groups) as GroupKey[]) {
+      if (groups[key].groupId === groupId) {
+        foundGroup = key
+        break
       }
     }
-    return [null, null] as [string | null, GroupKey | null]
-  }, [question, syntaxMap])
+
+    if (!foundGroup) {
+      return [null, null] as [GroupKey | null, string | null]
+    }
+
+    if (syntaxId === '01') {
+      if (groupId === '01') {
+        return [foundGroup, '\n'] as [GroupKey, string]
+      }
+      if (groupId === '02') {
+        return [foundGroup, '\t'] as [GroupKey, string]
+      }
+    }
+
+    const groupConfig = groups[foundGroup]
+    const syntax = groupConfig.syntaxes.find((s) => s.id === syntaxId)
+
+    return [foundGroup, syntax?.text || null] as [GroupKey, string | null]
+  }, [question.id])
 
   const handleKey = useCallback(
     (token: string) => {
-      if (submitted) return  // 🔥 prevent any input after submission
+      if (submitted) return
 
       setTypedTokens((prev) => {
         if (token === 'DELETE') {
@@ -76,7 +88,7 @@ export const QuestionScreen: React.FC<QuestionProps> = ({
         return prev
       })
     },
-    [onNext, submitted] // 🔥 make sure submitted is a dependency
+    [onNext, submitted]
   )
 
   useEffect(() => {
@@ -88,6 +100,25 @@ export const QuestionScreen: React.FC<QuestionProps> = ({
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [handleKey])
+
+  const renderedQuestion = useMemo(() => {
+    if (currentSyntax === '\n') {
+      return question.text.split('\n').map((line, idx) => (
+        <React.Fragment key={idx}>
+          {line}
+          <br />
+        </React.Fragment>
+      ))
+    } else if (currentSyntax === '\t') {
+      return question.text.split('\t').map((part, idx) => (
+        <React.Fragment key={idx}>
+          {part}
+          {'\u00A0\u00A0\u00A0\u00A0'} {/* 4 non-breaking spaces */}
+        </React.Fragment>
+      ))
+    }
+    return question.text
+  }, [question.text, currentSyntax])
 
   return (
     <div>
@@ -101,7 +132,10 @@ export const QuestionScreen: React.FC<QuestionProps> = ({
 
       <p className="text-gray-300 text-sm mb-6">
         Treating{' '}
-        <code className="px-1 bg-gray-700 rounded">{currentSyntax}</code> as a{' '}
+        <code className="px-1 bg-gray-700 rounded">
+          {currentSyntax === '\n' ? <br /> : currentSyntax === '\t' ? "\u00A0\u00A0\u00A0\u00A0" : currentSyntax}
+        </code>{' '}
+        as a{' '}
         <strong className="font-bold underline">
           {currentGroup === 'newline' ? 'newline' : 'tab'}
         </strong>, how many{' '}
@@ -111,7 +145,7 @@ export const QuestionScreen: React.FC<QuestionProps> = ({
       </p>
 
       <div className="bg-gray-800 text-white px-4 py-3 rounded max-w-xl w-full mb-6 border border-gray-700 whitespace-pre-wrap">
-        <code>{question}</code>
+        <code>{renderedQuestion}</code>
       </div>
 
       <div className="mb-4 p-2 border border-gray-600 rounded min-h-[4rem] font-mono whitespace-pre-wrap bg-gray-800 text-white max-w-xl w-full">
