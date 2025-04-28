@@ -1,19 +1,15 @@
 // Assignment screen
-import {Determinant} from '../../../ultilities/questionsTemplates'
 interface ReadyScreen {
-  det: Determinant;
   onStart: () => void;
 }
-export const ReadyScreen: React.FC<ReadyScreen> = ({ det, onStart }) => (
+export const ReadyScreen: React.FC<ReadyScreen> = ({ onStart }) => (
   <>
     <h1 className="text-4xl font-extrabold text-white text-center mb-4">
       Ready for the experiment? 🎉
     </h1>
     <p className="text-white text-center max-w-xl mb-6">
       Again, You’ve been assigned to{' '}
-      <code>
-        {det.Lhand}SPECIAL{det.Rhand}
-      </code>{' '}
+
       mode.
     </p>
     <button

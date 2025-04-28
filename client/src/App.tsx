@@ -63,41 +63,43 @@ function App() {
   const [questions, setQuestions] = useState<QuestionItem[]>([])
   const [assignmentId, setAssignmentId] = useState(0)
   const [loading, setLoading] = useState(true)
-  const fetched = useRef(false)
+  const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
-    if (fetched.current) return
-    fetched.current = true
+    if (initialized) return
+    setInitialized(true)
 
-    async function fetchGroupQuestions(groupId: GroupEnum) {
-      const groupKey = groupMap[groupId];
-      const question_size = groups[groupKey].templates.length;
-      const syntax_size = groups[groupKey].syntaxes.length;
+    async function fetchAllGroupQuestions() {
+      const responses = await Promise.all(
+        Object.values(GroupEnum)
+          .filter(id => typeof id === 'number')
+          .map(async (groupId) => {
+            const groupKey = groupMap[groupId as GroupEnum];
+            const question_size = groups[groupKey].templates.length;
+            const syntax_size = groups[groupKey].syntaxes.length;
 
-      console.log("question_size: " + question_size + "\nsyntax_size: " + syntax_size)
+            const response = await axios.get(`${apiUrl}/marcos/next-group`, {
+              params: {
+                question_size,
+                syntax_size,
+                group_id: groupId,
+              },
+            });
 
-      const response = await axios.get(`${apiUrl}/marcos/next-group`, {
-        params: {
-          question_size,
-          syntax_size,
-          group_id: groupId,
-        },
-      });
+            const { questionArray, syntaxArray, assignmentId } = response.data;
 
-      const { questionArray, syntaxArray, assignmentId } = response.data;
+            const questions = buildQuestionSet(groupKey, questionArray, syntaxArray);
 
-      const questions = buildQuestionSet(groupKey, questionArray, syntaxArray);
+            return { questions, assignmentId };
+          })
+      );
 
-      return { questions, assignmentId };
+      return responses;
     }
 
     async function loadQuestions() {
       try {
-        const promises = Object.values(GroupEnum).filter(id => typeof id === 'number').map(groupId => 
-          fetchGroupQuestions(groupId as GroupEnum)
-        );
-
-        const results = await Promise.all(promises);
+        const results = await fetchAllGroupQuestions();
 
         const allQuestions = results.flatMap(r => r.questions);
 

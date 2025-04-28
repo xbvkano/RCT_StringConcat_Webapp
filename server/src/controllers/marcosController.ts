@@ -136,6 +136,7 @@ export const createEntry: RequestHandler = async (req, res, next) => {
 
 export const getNextGroup: RequestHandler = async (req, res, next) => {
   try {
+    console.log("Getting next group")
     const question_size_raw = req.query.question_size;
     const syntax_size_raw = req.query.syntax_size;
     const group_id_raw = req.query.group_id;

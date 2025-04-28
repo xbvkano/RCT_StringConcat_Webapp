@@ -16,35 +16,32 @@ export interface QuestionProps {
   onChange: (val: string) => void
   onNext: () => void
   attemptedSubmit: boolean
+  submitted: boolean  // 🔥 added this prop
 }
 
 export const QuestionScreen: React.FC<QuestionProps> = ({
   question,
   current,
   total,
-  input,
   onChange,
   onNext,
   attemptedSubmit,
+  submitted,  // 🔥 consume it
 }) => {
-  // 1) Hold the single digit answer
   const [typedTokens, setTypedTokens] = useState<string[]>([])
 
-  // 2) Reset answer when question changes
   useEffect(() => {
     setTypedTokens([])
   }, [question])
 
-  // 3) Propagate joined input upward
   const displayValue = typedTokens.join('')
   useEffect(() => {
     onChange(displayValue)
   }, [displayValue, onChange])
 
-  // 4) Build map: syntax string → its groupKey
   const syntaxMap = useMemo(() => {
-    const m: Record<string, GroupKey> = {}
-    ;(Object.keys(groups) as GroupKey[]).forEach((g) => {
+    const m: Record<string, GroupKey> = {};
+    (Object.keys(groups) as GroupKey[]).forEach((g) => {
       groups[g].syntaxes.forEach((syntaxCfg) => {
         m[syntaxCfg.text] = g
       })
@@ -52,7 +49,6 @@ export const QuestionScreen: React.FC<QuestionProps> = ({
     return m
   }, [])
 
-  // 5) Find which syntax is present in this prompt
   const [currentSyntax, currentGroup] = useMemo(() => {
     for (const [syn, grp] of Object.entries(syntaxMap)) {
       if (question.includes(syn)) {
@@ -62,30 +58,27 @@ export const QuestionScreen: React.FC<QuestionProps> = ({
     return [null, null] as [string | null, GroupKey | null]
   }, [question, syntaxMap])
 
-  // 6) Handle on-screen and keyboard presses
   const handleKey = useCallback(
     (token: string) => {
+      if (submitted) return  // 🔥 prevent any input after submission
+
       setTypedTokens((prev) => {
         if (token === 'DELETE') {
-          // clear entry
           return []
         }
         if (token === 'ENTER') {
-          // submit & move on
           onNext()
           return []
         }
-        // accept only one digit
         if (['1', '2', '3', '4'].includes(token) && prev.length === 0) {
           return [token]
         }
         return prev
       })
     },
-    [onNext]
+    [onNext, submitted] // 🔥 make sure submitted is a dependency
   )
 
-  // 7) Listen for physical keyboard
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (['1', '2', '3', '4'].includes(e.key)) handleKey(e.key)
@@ -96,7 +89,6 @@ export const QuestionScreen: React.FC<QuestionProps> = ({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [handleKey])
 
-  // ——— UI ——————————————————————————————————————————————
   return (
     <div>
       <h1 className="text-4xl font-extrabold text-white text-center mb-4">
@@ -107,17 +99,15 @@ export const QuestionScreen: React.FC<QuestionProps> = ({
         Question {current + 1}/{total}
       </p>
 
-
       <p className="text-gray-300 text-sm mb-6">
         Treating{' '}
         <code className="px-1 bg-gray-700 rounded">{currentSyntax}</code> as a{' '}
         <strong className="font-bold underline">
           {currentGroup === 'newline' ? 'newline' : 'tab'}
-        </strong >, how many{' '}
+        </strong>, how many{' '}
         <strong className="font-bold underline">
-          {currentGroup === 'newline' ? 'lines' : 'tabs'} 
-        </strong >
-        &nbsp;will be printed?
+          {currentGroup === 'newline' ? 'lines' : 'tabs'}
+        </strong> will be printed?
       </p>
 
       <div className="bg-gray-800 text-white px-4 py-3 rounded max-w-xl w-full mb-6 border border-gray-700 whitespace-pre-wrap">

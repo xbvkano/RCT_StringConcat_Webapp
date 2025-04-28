@@ -39,6 +39,7 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
   setSurveyMetrics,
   clearSurveyData,
 }) => {
+  const [submitted, setSubmitted] = useState(false);
   const [started, setStarted] = useState(false)
   const [current, setCurrent] = useState(0)
   const [input, setInput] = useState('')
@@ -74,11 +75,10 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
       setAttemptedSubmit(true)
       return
     }
-
-    // 1) record ID
+  
+    // normal progression
     idsRef.current[current] = currentItem.id
-
-    // 2) record duration for this question (ms) exactly once
+  
     const now = Date.now()
     if (durationsRef.current[current] == null) {
       const delta = now - questionStartRef.current
@@ -86,8 +86,7 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
       questionStartRef.current = now
       console.log(`Question ${current + 1}: now=${now}, duration=${delta}ms`)
     }
-
-    // 3) compute correctness
+  
     const prompt = currentItem.text
     let syntaxUsed: string | null = null
     let groupKey: GroupKey | null = null
@@ -100,29 +99,31 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
     }
     const count = syntaxUsed ? prompt.split(syntaxUsed).length - 1 : 0
     const correctAnswer = groupKey === 'newline' ? count + 1 : count
-
+  
     const userAnswer = parseInt(input, 10)
     const isCorrect = userAnswer === correctAnswer
     accuracyRef.current[current] = isCorrect
-
-    // 4) store raw answer
+  
     experimentDataRef.current[current] = input
-
-    // 5) advance or finish
+  
+    // 👇 if still questions left, move to next
     if (current < total - 1) {
       setCurrent(current + 1)
       setInput(experimentDataRef.current[current + 1] || '')
       setAttemptedSubmit(false)
       return
     }
-
-    // 6) finalize overall metrics
+  
+    // 👇 FINAL SUBMIT (only here we care about submitted lock)
+  
+    if (submitted) return;
+    setSubmitted(true); // Immediately lock it right before final submit
+  
     const experimentEnd = Date.now()
     const totalTime = experimentEnd - startTimeRef.current
     const correctCount = accuracyRef.current.filter(Boolean).length
     const overallAccuracy = correctCount / total
-
-    // 7) send metrics back up
+  
     setSurveyMetrics({
       ids: idsRef.current,
       accuracyArray: accuracyRef.current,
@@ -130,8 +131,7 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
       totalTime,
       overallAccuracy,
     })
-
-    // 8) submit to server
+  
     try {
       await axios.post(`${apiUrl}/marcos`, {
         ...surveyData,
@@ -142,7 +142,6 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
         overallAccuracy,
         assignmentId,
       })
-      // clear local buffers
       experimentDataRef.current = []
       idsRef.current = []
       durationsRef.current = []
@@ -153,14 +152,6 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
     } finally {
       clearSurveyData()
       setPage(PAGES.thankyou)
-    }
-  }
-
-  const handleBack = () => {
-    if (current > 0) {
-      setCurrent(current - 1)
-      setInput(experimentDataRef.current[current - 1] || '')
-      setAttemptedSubmit(false)
     }
   }
 
@@ -188,15 +179,9 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
             onChange={setInput}
             onNext={handleNext}
             attemptedSubmit={attemptedSubmit}
+            submitted={submitted}
           />
-          {current > 0 && (
-            <button
-              onClick={handleBack}
-              className="mt-4 text-white underline"
-            >
-              ← Back
-            </button>
-          )}
+          
         </>
       )}
     </div>
