@@ -57,12 +57,12 @@ function parseLang(input: string): ProgrammingLanguage {
 
 /**
  * POST /
- * Handles survey + experiment submission. Expects assignmentIds for balancing.
+ * Handles survey + experiment submission. Expects assignmentId for balancing.
 */
 export const createEntry: RequestHandler = async (req, res, next) => {
   try {
     const {
-      assignmentIds,
+      assignmentId,
       yearsProgramming,
       age,
       sex: sexInput,
@@ -75,8 +75,8 @@ export const createEntry: RequestHandler = async (req, res, next) => {
       overallAccuracy,
     } = req.body as Record<string, any>;
 
-    if (!assignmentIds) {
-      res.status(400).json({ error: 'Missing assignmentIds' });
+    if (!assignmentId) {
+      res.status(400).json({ error: 'Missing assignmentId' });
       return;
     }
 
@@ -90,7 +90,7 @@ export const createEntry: RequestHandler = async (req, res, next) => {
     const langEnum = parseLang(languageInput);      // must map to 'cpp' | 'java' | 'ts' etc
 
     console.log('📥 Creating entry with:', {
-      assignmentIds,
+      assignmentId,
       experienceYears,
       safeAge,
       sexEnum,
@@ -119,9 +119,9 @@ export const createEntry: RequestHandler = async (req, res, next) => {
         },
       });
 
-      if (assignmentIds.length > 0) {
+      if (assignmentId.length > 0) {
         await tx.assignment.updateMany({
-          where: { id: { in: assignmentIds } },
+          where: { id: { in: assignmentId } },
           data: { completed: true, abandoned: false },
         })
       }
@@ -173,7 +173,7 @@ export const getNextGroup: RequestHandler = async (req, res, next) => {
       return;
     }
 
-    const { adjustedQuestionArray, adjustedSyntaxArray, assignmentIds } = await prisma.$transaction(async (tx) => {
+    const { adjustedQuestionArray, adjustedSyntaxArray, assignmentId } = await prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(42)`;
 
       const questionArray = Array.from({ length: question_size }, (_, i) => i + 1);
@@ -190,7 +190,7 @@ export const getNextGroup: RequestHandler = async (req, res, next) => {
       });
 
       let newLatinCounter: number;
-      let assignmentIds: number;
+      let assignmentId: number;
 
       if (abandonedAssignment) {
         await tx.assignment.update({
@@ -202,7 +202,7 @@ export const getNextGroup: RequestHandler = async (req, res, next) => {
         });
 
         newLatinCounter = abandonedAssignment.latinCounter;
-        assignmentIds = abandonedAssignment.id;
+        assignmentId = abandonedAssignment.id;
       } else {
         const maxLatinCounter = await tx.assignment.aggregate({
           where: { group: group_id },
@@ -223,7 +223,7 @@ export const getNextGroup: RequestHandler = async (req, res, next) => {
           },
         });
 
-        assignmentIds = newAssignment.id;
+        assignmentId = newAssignment.id;
       }
 
       const adjustedQuestionArray = questionArray.map(
@@ -237,14 +237,14 @@ export const getNextGroup: RequestHandler = async (req, res, next) => {
       return {
         adjustedQuestionArray,
         adjustedSyntaxArray,
-        assignmentIds,
+        assignmentId,
       };
     });
 
     res.json({
       questionArray: adjustedQuestionArray,
       syntaxArray: adjustedSyntaxArray,
-      assignmentIds,
+      assignmentId,
     });
   } catch (err) {
     console.error('❌ Error in getNextGroup:', err);

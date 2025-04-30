@@ -86,7 +86,7 @@ function App() {
               params: { question_size, syntax_size, group_id: groupId },
             })
 
-            const { questionArray, syntaxArray, assignmentIds } = data
+            const { questionArray, syntaxArray, assignmentId } = data
             const ExplainComponent =
               groupId === GroupEnum.newline ? ExplainNewline : ExplainTab
 
@@ -97,7 +97,7 @@ function App() {
                 questionArray,
                 syntaxArray
               ),
-              assignmentIds,
+              assignmentIds: assignmentId,
             }
           })
       )
