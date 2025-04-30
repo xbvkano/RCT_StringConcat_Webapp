@@ -32,7 +32,7 @@ const ThankYouPage: React.FC<ThankYouPageProps> = ({
         await axios.post(`${apiUrl}/marcos`, {
           ...rest,
           task_accuracy: test_accuracy,
-          assignmentIds,
+          assignmentId: assignmentIds,
         })
       } catch (error) {
         console.error('Submit error', error)
