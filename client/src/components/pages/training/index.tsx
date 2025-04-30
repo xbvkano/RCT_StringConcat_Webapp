@@ -1,42 +1,33 @@
 // src/components/pages/TrainingPage.tsx
 import React, { useState, useEffect, useCallback } from 'react'
-import { PageKey, PAGES } from '../../../App'
-import {
-  generateMixedTrainingQuestions,
-  QuestionItem,
-  trainingGroups,
-} from '../../ultilities/questionsTemplates'
 import { KeyboardDisplay } from '../../ultilities/keyboard'
 import { AssignmentScreen } from './components/AssigmentScreen'
+import { trainingGroups } from '../../ultilities/questionsTemplates'
+import type { QuestionItem } from '../../ultilities/questionsTemplates'
 
 interface TrainingPageProps {
-  setPage: (page: PageKey) => void
+  setPage: () => void
+  trainingQuestions: QuestionItem[]
 }
 
-// helper to escape any special RegExp characters
-function escapeRegex(str: string): string {
-  return str.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
-}
+const TrainingPage: React.FC<TrainingPageProps> = ({
+  setPage,
+  trainingQuestions,
+}) => {
+  const questions = trainingQuestions
 
-const TrainingPage: React.FC<TrainingPageProps> = ({ setPage }) => {
-  // 1) Load our flat list of QuestionItem once
-  const [questions, setQuestions] = useState<QuestionItem[]>([])
-  useEffect(() => {
-    setQuestions(generateMixedTrainingQuestions())
-  }, [])
-
-  // 2) Top-level UI state
+  // UI state
   const [started, setStarted] = useState(false)
   const [idx, setIdx] = useState(0)
   const [typed, setTyped] = useState('')
   const [attempted, setAttempted] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
 
-  // 3) Key handler
+  // handle key presses
   const handleKey = useCallback(
     (token: string) => {
       if (token === 'DELETE') {
-        setTyped((t) => t.slice(0, -1))
+        setTyped(t => t.slice(0, -1))
       } else if (token === 'ENTER') {
         if (!showFeedback) {
           if (typed === '') {
@@ -45,14 +36,13 @@ const TrainingPage: React.FC<TrainingPageProps> = ({ setPage }) => {
           }
           setShowFeedback(true)
         } else {
-          // move to next question or experiment
           if (idx < questions.length - 1) {
-            setIdx((i) => i + 1)
+            setIdx(i => i + 1)
             setTyped('')
             setAttempted(false)
             setShowFeedback(false)
           } else {
-            setPage(PAGES.experiment)
+            setPage()
           }
         }
       } else if (['1','2','3','4'].includes(token)) {
@@ -62,7 +52,7 @@ const TrainingPage: React.FC<TrainingPageProps> = ({ setPage }) => {
     [idx, questions.length, typed, showFeedback, setPage]
   )
 
-  // 4) Bind keyboard events
+  // bind keyboard
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (['1','2','3','4'].includes(e.key)) handleKey(e.key)
@@ -73,14 +63,13 @@ const TrainingPage: React.FC<TrainingPageProps> = ({ setPage }) => {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [handleKey])
 
-  // 5) Wait for questions to load
   if (questions.length === 0) {
     return <div className="text-center p-8 text-white">Loading…</div>
   }
+
   const total = questions.length
   const current = questions[idx]
 
-  // 6) Show assignment screen until “Start”
   if (!started) {
     return (
       <div className="flex flex-col items-center justify-center w-full px-6 py-10">
@@ -89,32 +78,32 @@ const TrainingPage: React.FC<TrainingPageProps> = ({ setPage }) => {
     )
   }
 
-  // 7) Figure out which group this is
-  const groupBoundary = trainingGroups.newline.templates.length
-  const groupKey: 'newline'|'tab' = idx < groupBoundary ? 'newline' : 'tab'
+  // determine group from question ID prefix
+  const prefix = current.id.slice(0, 2)
+  const groupKey: 'newline' | 'tab' =
+    prefix === trainingGroups.newline.groupId ? 'newline' : 'tab'
   const groupConfig = trainingGroups[groupKey]
 
-  // 8) Find which syntax was actually used
-  const syntaxUsed = groupConfig.syntaxes.find((s) =>
+  // find which syntax text appears
+  const syntaxUsed = groupConfig.syntaxes.find(s =>
     current.text.includes(s.text)
   )!.text
 
-  // 9) Compute correct answer
-  const rawCount =
-    (current.text.match(new RegExp(escapeRegex(syntaxUsed), 'g')) || []).length
-  const correctAnswer = groupKey === 'newline' ? rawCount + 1 : rawCount
+  // count occurrences for correct answer
+  const escaped = syntaxUsed.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+  const count = (current.text.match(new RegExp(escaped, 'g')) || []).length
+  const correctAnswer = groupKey === 'newline' ? count + 1 : count
 
-  // 10) Rendered output
+  // prepare rendered output
   const actualChar = groupKey === 'newline' ? '\n' : '\t'
   const rendered = current.text.replace(
-    new RegExp(escapeRegex(syntaxUsed), 'g'),
+    new RegExp(escaped, 'g'),
     actualChar
   )
 
   const userAns = parseInt(typed, 10)
   const isCorrect = userAns === correctAnswer
 
-  // 11) Render question or feedback
   return (
     <div className="flex flex-col items-center justify-center w-full px-6 py-10 text-white">
       <h1 className="text-4xl font-extrabold mb-4">Training</h1>
@@ -124,22 +113,21 @@ const TrainingPage: React.FC<TrainingPageProps> = ({ setPage }) => {
           <p className="mb-1">
             Question {idx + 1}/{total} — ID <code>{current.id}</code>
           </p>
-
           <div className="bg-gray-800 p-4 rounded mb-4 max-w-xl w-full whitespace-pre-wrap">
             <code>{current.text}</code>
           </div>
 
-          {/* New question prompt */}
           <p className="text-gray-300 text-sm mb-6">
             Treating{' '}
             <code className="px-1 bg-gray-700 rounded">{syntaxUsed}</code> as a{' '}
             <strong className="font-bold underline">
               {groupKey === 'newline' ? 'newline' : 'tab'}
-            </strong >, how many{' '}
+            </strong>
+            , how many{' '}
             <strong className="font-bold underline">
-              {groupKey === 'newline' ? 'lines' : 'tabs'} 
-            </strong >
-            &nbsp;will be printed?
+              {groupKey === 'newline' ? 'lines' : 'tabs'}
+            </strong>{' '}
+            will be printed?
           </p>
 
           <div className="mb-4 w-full max-w-xl">
