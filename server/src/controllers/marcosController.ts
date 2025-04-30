@@ -57,12 +57,12 @@ function parseLang(input: string): ProgrammingLanguage {
 
 /**
  * POST /
- * Handles survey + experiment submission. Expects assignmentId for balancing.
+ * Handles survey + experiment submission. Expects assignmentIds for balancing.
 */
 export const createEntry: RequestHandler = async (req, res, next) => {
   try {
     const {
-      assignmentId,
+      assignmentIds,
       yearsProgramming,
       age,
       sex: sexInput,
@@ -75,8 +75,8 @@ export const createEntry: RequestHandler = async (req, res, next) => {
       overallAccuracy,
     } = req.body as Record<string, any>;
 
-    if (!assignmentId) {
-      res.status(400).json({ error: 'Missing assignmentId' });
+    if (!assignmentIds) {
+      res.status(400).json({ error: 'Missing assignmentIds' });
       return;
     }
 
@@ -90,7 +90,7 @@ export const createEntry: RequestHandler = async (req, res, next) => {
     const langEnum = parseLang(languageInput);      // must map to 'cpp' | 'java' | 'ts' etc
 
     console.log('📥 Creating entry with:', {
-      assignmentId,
+      assignmentIds,
       experienceYears,
       safeAge,
       sexEnum,
@@ -119,10 +119,12 @@ export const createEntry: RequestHandler = async (req, res, next) => {
         },
       });
 
-      await tx.assignment.update({
-        where: { id: assignmentId },
-        data: { completed: true },
-      });
+      if (assignmentIds.length > 0) {
+        await tx.assignment.updateMany({
+          where: { id: { in: assignmentIds } },
+          data: { completed: true },
+        })
+      }
 
       // 🔥 New: insert all question rows into Marcos_per_question
       const perQuestionData = ids.map((questionId: string, index: number) => ({
@@ -171,7 +173,7 @@ export const getNextGroup: RequestHandler = async (req, res, next) => {
       return;
     }
 
-    const { adjustedQuestionArray, adjustedSyntaxArray, assignmentId } = await prisma.$transaction(async (tx) => {
+    const { adjustedQuestionArray, adjustedSyntaxArray, assignmentIds } = await prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(42)`;
 
       const questionArray = Array.from({ length: question_size }, (_, i) => i + 1);
@@ -188,7 +190,7 @@ export const getNextGroup: RequestHandler = async (req, res, next) => {
       });
 
       let newLatinCounter: number;
-      let assignmentId: number;
+      let assignmentIds: number;
 
       if (abandonedAssignment) {
         await tx.assignment.update({
@@ -200,7 +202,7 @@ export const getNextGroup: RequestHandler = async (req, res, next) => {
         });
 
         newLatinCounter = abandonedAssignment.latinCounter;
-        assignmentId = abandonedAssignment.id;
+        assignmentIds = abandonedAssignment.id;
       } else {
         const maxLatinCounter = await tx.assignment.aggregate({
           where: { group: group_id },
@@ -221,7 +223,7 @@ export const getNextGroup: RequestHandler = async (req, res, next) => {
           },
         });
 
-        assignmentId = newAssignment.id;
+        assignmentIds = newAssignment.id;
       }
 
       const adjustedQuestionArray = questionArray.map(
@@ -235,14 +237,14 @@ export const getNextGroup: RequestHandler = async (req, res, next) => {
       return {
         adjustedQuestionArray,
         adjustedSyntaxArray,
-        assignmentId,
+        assignmentIds,
       };
     });
 
     res.json({
       questionArray: adjustedQuestionArray,
       syntaxArray: adjustedSyntaxArray,
-      assignmentId,
+      assignmentIds,
     });
   } catch (err) {
     console.error('❌ Error in getNextGroup:', err);

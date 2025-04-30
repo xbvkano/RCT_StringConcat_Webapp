@@ -61,14 +61,14 @@ function App() {
   const durationsRef = useRef<number[]>([])
 
   const [questions, setQuestions] = useState<QuestionItem[]>([])
-  const [assignmentId, setAssignmentId] = useState(0)
+  const [assignmentId, setAssignmentId] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
   const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
     if (initialized) return
     setInitialized(true)
-
+  
     async function fetchAllGroupQuestions() {
       const responses = await Promise.all(
         Object.values(GroupEnum)
@@ -77,7 +77,7 @@ function App() {
             const groupKey = groupMap[groupId as GroupEnum];
             const question_size = groups[groupKey].templates.length;
             const syntax_size = groups[groupKey].syntaxes.length;
-
+  
             const response = await axios.get(`${apiUrl}/marcos/next-group`, {
               params: {
                 question_size,
@@ -85,33 +85,35 @@ function App() {
                 group_id: groupId,
               },
             });
-
+  
             const { questionArray, syntaxArray, assignmentId } = response.data;
-
+  
             const questions = buildQuestionSet(groupKey, questionArray, syntaxArray);
-
+  
             return { questions, assignmentId };
           })
       );
-
+  
       return responses;
     }
-
+  
     async function loadQuestions() {
       try {
         const results = await fetchAllGroupQuestions();
-
+  
         const allQuestions = results.flatMap(r => r.questions);
-
+        const allAssignmentIds = results.map(r => r.assignmentId);
+  
         setQuestions(allQuestions);
-        setAssignmentId(results[0]?.assignmentId || 0);
+        setAssignmentId(allAssignmentIds);
+  
       } catch (error) {
         console.error('Error loading questions:', error);
       } finally {
         setLoading(false);
       }
     }
-
+  
     loadQuestions();
   }, [])
 

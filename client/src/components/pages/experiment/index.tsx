@@ -14,7 +14,7 @@ export interface ExperimentPageProps {
   durationsRef: React.MutableRefObject<number[]>    // ms per question
   accuracyRef: React.MutableRefObject<boolean[]>
   questions: QuestionItem[]
-  assignmentId: number
+  assignmentId: number[]
   setSurveyMetrics: (metrics: {
     ids: string[]
     accuracyArray: boolean[]
