@@ -1,4 +1,3 @@
-// src/components/pages/TrainingPage.tsx
 import React, { useState, useEffect, useCallback } from 'react'
 import { KeyboardDisplay } from '../../ultilities/keyboard'
 import { AssignmentScreen } from './components/AssigmentScreen'
@@ -19,61 +18,10 @@ const TrainingPage: React.FC<TrainingPageProps> = ({
   const [started, setStarted] = useState(false)
   const [idx, setIdx] = useState(0)
   const [typed, setTyped] = useState('')
-  const [attempted, setAttempted] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
 
-  const handleKey = useCallback(
-    (token: string) => {
-      if (token === 'DELETE') {
-        setTyped(t => t.slice(0, -1))
-      } else if (token === 'ENTER') {
-        if (!showFeedback) {
-          if (typed === '') {
-            setAttempted(true)
-            return
-          }
-          setShowFeedback(true)
-        } else {
-          if (idx < questions.length - 1) {
-            setIdx(i => i + 1)
-            setTyped('')
-            setAttempted(false)
-            setShowFeedback(false)
-          } else {
-            setPage()
-          }
-        }
-      } else if (['1','2','3','4'].includes(token)) {
-        if (typed === '') setTyped(token)
-      }
-    },
-    [idx, questions.length, typed, showFeedback, setPage]
-  )
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (['1','2','3','4'].includes(e.key)) handleKey(e.key)
-      else if (e.key === 'Enter') handleKey('ENTER')
-      else if (e.key === 'Backspace') handleKey('DELETE')
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [handleKey])
-
-  if (questions.length === 0) {
-    return <div className="text-center p-8 text-white">Loading…</div>
-  }
-
-  const total = questions.length
   const current = questions[idx]
-
-  if (!started) {
-    return (
-      <div className="flex flex-col items-center justify-center w-full px-6 py-10">
-        <AssignmentScreen onStart={() => setStarted(true)} />
-      </div>
-    )
-  }
+  const total = questions.length
 
   const prefix = current.id.slice(0, 2)
   const groupKey: 'newline' | 'tab' =
@@ -89,13 +37,50 @@ const TrainingPage: React.FC<TrainingPageProps> = ({
   const correctAnswer = groupKey === 'newline' ? count + 1 : count
 
   const actualChar = groupKey === 'newline' ? '\n' : '\t'
-  const rendered = current.text.replace(
-    new RegExp(escaped, 'g'),
-    actualChar
-  )
+  const rendered = current.text.replace(new RegExp(escaped, 'g'), actualChar)
 
   const userAns = parseInt(typed, 10)
   const isCorrect = userAns === correctAnswer
+
+  const handleKey = useCallback(
+    (token: string) => {
+      if (showFeedback) {
+        if (token === 'ENTER') {
+          if (idx < total - 1) {
+            setIdx(i => i + 1)
+            setTyped('')
+            setShowFeedback(false)
+          } else {
+            setPage()
+          }
+        }
+        return
+      }
+
+      if (['1', '2', '3', '4'].includes(token)) {
+        setTyped(token)
+        setShowFeedback(true)
+      }
+    },
+    [showFeedback, idx, total, setPage]
+  )
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (['1','2','3','4'].includes(e.key)) handleKey(e.key)
+      else if (e.key === 'Enter') handleKey('ENTER')
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [handleKey])
+
+  if (!started) {
+    return (
+      <div className="flex flex-col items-center justify-center w-full px-6 py-10">
+        <AssignmentScreen onStart={() => setStarted(true)} />
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col items-center justify-center w-full px-6 py-10 text-white">
@@ -120,19 +105,16 @@ const TrainingPage: React.FC<TrainingPageProps> = ({
             </code>
           </div>
 
+          <p className="text-xl font-semibold text-white mb-2 text-center">
+            {groupKey === 'newline'
+              ? 'How many lines will be printed?'
+              : 'How many tabs will be printed?'}
+          </p>
 
           <div className="bg-gray-800 p-4 rounded mb-4 max-w-xl w-full whitespace-pre-wrap">
-            <code>{current.text}</code>
+            <code>{rendered}</code>
           </div>
 
-          <div className="mb-4 w-full max-w-xl">
-            <div className="p-2 bg-gray-900 border border-gray-700 rounded min-h-[3rem] font-mono">
-              {typed || <span className="text-gray-500">Type your answer…</span>}
-            </div>
-            {attempted && (
-              <p className="text-red-500 mt-2">Please enter a response.</p>
-            )}
-          </div>
           <KeyboardDisplay onKey={handleKey} />
         </>
       ) : (

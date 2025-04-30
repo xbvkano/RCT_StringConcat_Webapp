@@ -41,6 +41,13 @@ const InfoPage: React.FC<InfoPageProps> = ({ setPage, backPage }) => {
           <strong className="font-bold mx-1">lines</strong> (for newline) or 
           <strong className="font-bold mx-1">tabs</strong> are created.
         </p>
+        <p className="mb-4">
+          To answer, press one of the number keys 
+          <code className="bg-gray-800 mx-1 px-2 py-1 rounded">1</code> through 
+          <code className="bg-gray-800 mx-1 px-2 py-1 rounded">4</code> on your keyboard.
+          Press <code className="bg-gray-800 mx-1 px-2 py-1 rounded">Enter</code> to submit your response,
+          and <code className="bg-gray-800 mx-1 px-2 py-1 rounded">Backspace</code> if you need to correct a mistake.
+        </p>
       </div>
 
       {/* Syntaxes List */}

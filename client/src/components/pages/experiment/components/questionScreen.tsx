@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react'
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
+import { flushSync } from 'react-dom'
 import { KeyboardDisplay } from '../../../ultilities/keyboard'
 import {
   groups,
@@ -25,15 +26,20 @@ const QuestionScreen: React.FC<QuestionProps> = ({
   onChange,
   onNext,
   attemptedSubmit,
-  submitted,
 }) => {
   if (!question) return null
 
-  const [tokens, setTokens] = useState<string[]>([])
+  const [hasAnswered, setHasAnswered] = useState(false)
 
   useEffect(() => {
-    setTokens([])
+    setHasAnswered(false)
   }, [question.id])
+
+  // Fix: make onNext always reference latest value
+  const onNextRef = useRef(onNext)
+  useEffect(() => {
+    onNextRef.current = onNext
+  }, [onNext])
 
   const [groupKey, syntaxText] = useMemo<[GroupKey | null, string | null]>(() => {
     const gid = question.id.slice(0, 2)
@@ -53,29 +59,28 @@ const QuestionScreen: React.FC<QuestionProps> = ({
 
   const handleKey = useCallback(
     (tok: string) => {
-      if (submitted) return
+      console.log('Got here')
 
-      if (tok === 'DELETE') {
-        setTokens((prev) => {
-          const next = prev.slice(0, -1)
-          onChange(next.join(''))
-          return next
+      if (hasAnswered) return
+
+      console.log('Submitted?')
+
+      if (['1', '2', '3', '4'].includes(tok)) {
+        flushSync(() => {
+          onChange(tok)
         })
-      } else if (tok === 'ENTER') {
-        onNext()
-      } else if (['1', '2', '3', '4'].includes(tok) && tokens.length === 0) {
-        setTokens([tok])
-        onChange(tok)
+        setHasAnswered(true)
+        setTimeout(() => {
+          onNextRef.current()
+        }, 200)
       }
     },
-    [submitted, onChange, onNext, tokens.length]
+    [hasAnswered, onChange]
   )
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (['1', '2', '3', '4'].includes(e.key)) handleKey(e.key)
-      else if (e.key === 'Enter') handleKey('ENTER')
-      else if (e.key === 'Backspace') handleKey('DELETE')
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -124,13 +129,14 @@ const QuestionScreen: React.FC<QuestionProps> = ({
         </code>
       </div>
 
+      <p className="text-xl font-semibold text-white mb-2 text-center">
+        {groupKey === 'newline'
+          ? 'How many lines will be printed?'
+          : 'How many tabs will be printed?'}
+      </p>
+
       <div className="bg-gray-800 text-white px-4 py-3 rounded max-w-xl w-full mb-6 border border-gray-700 whitespace-pre-wrap">
         <code>{rendered}</code>
-      </div>
-
-      <div className="mb-4 p-2 border border-gray-600 rounded min-h-[4rem] font-mono whitespace-pre-wrap bg-gray-800 text-white max-w-xl w-full">
-        {input || <span className="text-gray-500">Type your answer...</span>}
-        <span className="inline-block w-1 h-6 bg-white animate-pulse align-bottom ml-1" />
       </div>
 
       <KeyboardDisplay onKey={handleKey} />

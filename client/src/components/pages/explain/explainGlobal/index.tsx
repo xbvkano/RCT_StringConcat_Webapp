@@ -50,6 +50,11 @@ export const ExplainPage: React.FC<ExplainPageProps> = ({ setPage }) => {
         </p>
 
         <p>
+          To answer, you’ll use the number keys <code className="bg-gray-800 px-2 py-1 rounded">1</code> through <code className="bg-gray-800 px-2 py-1 rounded">4</code> on your keyboard.
+          Once you've selected your answer, press <code className="bg-gray-800 px-2 py-1 rounded">Enter</code> to submit. If you make a mistake, press <code className="bg-gray-800 px-2 py-1 rounded">Backspace</code> to clear your input.
+        </p>
+
+        <p>
           No prior programming experience is required — just do your best!
         </p>
 
