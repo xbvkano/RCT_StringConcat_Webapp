@@ -19,7 +19,7 @@ export interface QuestionProps {
   submitted: boolean
 }
 
-export const QuestionScreen: React.FC<QuestionProps> = ({
+const QuestionScreen: React.FC<QuestionProps> = ({
   question,
   current,
   total,
@@ -29,64 +29,56 @@ export const QuestionScreen: React.FC<QuestionProps> = ({
   attemptedSubmit,
   submitted,
 }) => {
-  const [typedTokens, setTypedTokens] = useState<string[]>([])
+  // Protect against missing question
+  if (!question) return null
 
-  // Whenever the question changes, clear only the local tokens
+  // Local tokens state
+  const [tokens, setTokens] = useState<string[]>([])
+
+  // Reset tokens when question changes
   useEffect(() => {
-    setTypedTokens([])
-  }, [question.text])
-
-  // Determine group & syntax for this question
-  const [currentGroup, currentSyntax] = useMemo<
-    [GroupKey | null, string | null]
-  >(() => {
-    const groupId = question.id.slice(0, 2)
-    const syntaxId = question.id.slice(4, 6)
-    let foundGroup: GroupKey | null = null
-
-    ;(Object.keys(groups) as GroupKey[]).forEach((g) => {
-      if (groups[g].groupId === groupId) {
-        foundGroup = g
-      }
-    })
-    if (!foundGroup) return [null, null]
-
-    const groupConfig = groups[foundGroup] as {
-      syntaxes: SyntaxConfig[]
-    }
-    const syntaxEntry = groupConfig.syntaxes.find(
-      (s: SyntaxConfig) => s.id === syntaxId
-    )
-    return [foundGroup, syntaxEntry?.text || null]
+    setTokens([])
   }, [question.id])
+
+  // Figure out group & syntax from question.id
+  const [groupKey, syntaxText] = useMemo<[GroupKey | null, string | null]>(
+    () => {
+      const gid = question.id.slice(0, 2)
+      const sid = question.id.slice(4, 6)
+      let g: GroupKey | null = null
+      ;(Object.keys(groups) as GroupKey[]).forEach((k) => {
+        if (groups[k].groupId === gid) g = k
+      })
+      if (!g) return [null, null]
+      const cfg = groups[g] as { syntaxes: SyntaxConfig[] }
+      const entry = cfg.syntaxes.find((s) => s.id === sid)
+      return [g, entry?.text || null]
+    },
+    [question.id]
+  )
 
   // Handle keyboard tokens
   const handleKey = useCallback(
-    (token: string) => {
+    (tok: string) => {
       if (submitted) return
 
-      setTypedTokens((prev) => {
-        let next: string[]
-        if (token === 'DELETE') {
-          next = prev.slice(0, -1)
-        } else if (token === 'ENTER') {
-          onNext()
-          next = []
-        } else if (
-          ['1', '2', '3', '4'].includes(token) &&
-          prev.length === 0
-        ) {
-          next = [token]
-        } else {
-          next = prev
-        }
-        onChange(next.join(''))
-        return next
-      })
+      if (tok === 'DELETE') {
+        setTokens((prev) => {
+          const next = prev.slice(0, -1)
+          onChange(next.join(''))
+          return next
+        })
+      } else if (tok === 'ENTER') {
+        onNext()
+      } else if (['1', '2', '3', '4'].includes(tok) && tokens.length === 0) {
+        setTokens([tok])
+        onChange(tok)
+      }
     },
-    [onChange, onNext, submitted]
+    [submitted, onChange, onNext, tokens.length]
   )
 
+  // Bind/unbind keyboard events
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (['1', '2', '3', '4'].includes(e.key)) handleKey(e.key)
@@ -97,17 +89,17 @@ export const QuestionScreen: React.FC<QuestionProps> = ({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [handleKey])
 
-  // Render the question text, showing visible tabs/newlines
-  const renderedQuestion = useMemo(() => {
-    if (currentSyntax === '\n') {
-      return question.text.split('\n').map((ln, i) => (
+  // Render code snippet, showing visible tabs/newlines
+  const rendered = useMemo(() => {
+    if (syntaxText === '\n') {
+      return question.text.split('\n').map((line, i) => (
         <React.Fragment key={i}>
-          {ln}
+          {line}
           <br />
         </React.Fragment>
       ))
     }
-    if (currentSyntax === '\t') {
+    if (syntaxText === '\t') {
       return question.text.split('\t').map((part, i) => (
         <React.Fragment key={i}>
           {part}
@@ -116,7 +108,7 @@ export const QuestionScreen: React.FC<QuestionProps> = ({
       ))
     }
     return question.text
-  }, [question.text, currentSyntax])
+  }, [question.text, syntaxText])
 
   return (
     <div>
@@ -129,24 +121,24 @@ export const QuestionScreen: React.FC<QuestionProps> = ({
       <p className="text-gray-300 text-sm mb-6">
         Treating{' '}
         <code className="px-1 bg-gray-700 rounded">
-          {currentSyntax === '\n'
+          {syntaxText === '\n'
             ? <br />
-            : currentSyntax === '\t'
+            : syntaxText === '\t'
             ? '\u00A0\u00A0\u00A0\u00A0'
-            : currentSyntax}
+            : syntaxText}
         </code>{' '}
         as a{' '}
         <strong className="font-bold underline">
-          {currentGroup === 'newline' ? 'newline' : 'tab'}
+          {groupKey === 'newline' ? 'newline' : 'tab'}
         </strong>
         , how many{' '}
         <strong className="font-bold underline">
-          {currentGroup === 'newline' ? 'lines' : 'tabs'}
+          {groupKey === 'newline' ? 'lines' : 'tabs'}
         </strong>{' '}
         will be printed?
       </p>
       <div className="bg-gray-800 text-white px-4 py-3 rounded max-w-xl w-full mb-6 border border-gray-700 whitespace-pre-wrap">
-        <code>{renderedQuestion}</code>
+        <code>{rendered}</code>
       </div>
       <div className="mb-4 p-2 border border-gray-600 rounded min-h-[4rem] font-mono whitespace-pre-wrap bg-gray-800 text-white max-w-xl w-full">
         {input || <span className="text-gray-500">Type your answer...</span>}
@@ -159,3 +151,5 @@ export const QuestionScreen: React.FC<QuestionProps> = ({
     </div>
   )
 }
+
+export default QuestionScreen

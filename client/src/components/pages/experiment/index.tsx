@@ -1,6 +1,6 @@
 // src/components/pages/ExperimentPage.tsx
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { QuestionScreen } from './components/questionScreen'
+import QuestionScreen from "./components/questionScreen"
 import type { QuestionItem, GroupKey } from '../../ultilities/questionsTemplates'
 import { groups } from '../../ultilities/questionsTemplates'
 import type { SurveyData } from '../../../App'
@@ -19,6 +19,7 @@ export interface ExperimentPageProps {
     accuracyArray: boolean[]
     durations: number[]
     totalTime: number
+    overallAccuracy: number
   }) => void
 }
 
@@ -38,32 +39,39 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
   const [attemptedSubmit, setAttemptedSubmit] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
-  const startTimeRef = useRef(0)
-  const questionStartRef = useRef(0)
+  const questionStartRef = useRef<number>(0)
 
-  // reset once on mount
+  // Reset all the per-question refs on mount:
   useEffect(() => {
     idsRef.current = []
+    experimentDataRef.current = []
     durationsRef.current = []
     accuracyRef.current = []
-    experimentDataRef.current = []
   }, [])
 
-  const syntaxMap = useMemo(() => {
+  // Whenever we move to a new `current` question, clear the input + flags:
+  useEffect(() => {
+    setInput('')
+    setAttemptedSubmit(false)
+    setSubmitted(false)
+  }, [current])
+
+  // Map each possible syntax token to its group
+  const syntaxMap = useMemo<Record<string, GroupKey>>(() => {
     const m: Record<string, GroupKey> = {}
-    ;(Object.keys(groups) as GroupKey[]).forEach(g =>
-      groups[g].syntaxes.forEach(s => { m[s.text] = g })
-    )
+    ;(Object.keys(groups) as GroupKey[]).forEach((g) => {
+      groups[g].syntaxes.forEach((s) => {
+        m[s.text] = g
+      })
+    })
     return m
   }, [])
 
   const total = questions.length
-  const currentItem = questions[current]
+  const question = questions[current]
 
   const handleStart = () => {
-    const now = Date.now()
-    startTimeRef.current = now
-    questionStartRef.current = now
+    questionStartRef.current = Date.now()
     setStarted(true)
   }
 
@@ -73,51 +81,52 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
       return
     }
 
-    // record by index
-    idsRef.current[current] = currentItem.id
+    // record ID & raw input
+    idsRef.current.push(question.id)
+    experimentDataRef.current.push(input)
 
+    // record duration
     const now = Date.now()
     const delta = now - questionStartRef.current
-    durationsRef.current[current] = delta
+    durationsRef.current.push(delta)
     questionStartRef.current = now
 
-    let syntaxUsed: string | null = null
-    let groupKey: GroupKey | null = null
-    for (const [syn, grp] of Object.entries(syntaxMap)) {
-      if (currentItem.text.includes(syn)) {
-        syntaxUsed = syn
-        groupKey = grp
+    // determine correct answer
+    let used: string | null = null
+    let grp: GroupKey | null = null
+    for (const [tok, g] of Object.entries(syntaxMap)) {
+      if (question.text.includes(tok)) {
+        used = tok
+        grp = g
         break
       }
     }
-    const count = syntaxUsed
-      ? currentItem.text.split(syntaxUsed).length - 1
-      : 0
-    const correctAnswer = groupKey === 'newline' ? count + 1 : count
+    const count = used ? question.text.split(used).length - 1 : 0
+    const correct = grp === 'newline' ? count + 1 : count
+    const answer = parseInt(input, 10)
+    accuracyRef.current.push(answer === correct)
 
-    const userAnswer = parseInt(input, 10)
-    const isCorrect = userAnswer === correctAnswer
-    accuracyRef.current[current] = isCorrect
-    experimentDataRef.current[current] = input
-
+    // next question?
     if (current < total - 1) {
-      setCurrent(current + 1)
-      setInput('')
-      setAttemptedSubmit(false)
+      setCurrent(c => c + 1)
       return
     }
 
+    // final submit for this group
     if (submitted) return
     setSubmitted(true)
 
-    const experimentEnd = Date.now()
-    const totalTime = experimentEnd - startTimeRef.current
+    // totalTime = sum of all per-question durations
+    const totalTime = durationsRef.current.reduce((a, b) => a + b, 0)
+    const arrAcc = [...accuracyRef.current]
+    const overall = arrAcc.filter(x => x).length / arrAcc.length
 
     setSurveyMetrics({
       ids: [...idsRef.current],
-      accuracyArray: [...accuracyRef.current],
+      accuracyArray: arrAcc,
       durations: [...durationsRef.current],
       totalTime,
+      overallAccuracy: overall,
     })
 
     setPage()
@@ -139,11 +148,11 @@ const ExperimentPage: React.FC<ExperimentPageProps> = ({
         </div>
       ) : (
         <QuestionScreen
-          question={currentItem}
+          question={question}
           current={current}
           total={total}
           input={input}
-          onChange={val => setInput(val)}
+          onChange={setInput}
           onNext={handleNext}
           attemptedSubmit={attemptedSubmit}
           submitted={submitted}

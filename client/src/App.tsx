@@ -1,3 +1,4 @@
+// src/App.tsx
 import React, { useRef, useState, useEffect } from 'react'
 import axios from 'axios'
 import CenteredPaper from './components/paper'
@@ -51,6 +52,7 @@ const groupMap: Record<GroupEnum, GroupKey> = {
 
 function App() {
   const [page, setPage] = useState<PageKey>(PAGES.landing)
+
   const surveyDataRef = useRef<SurveyData>({
     yearsProgramming: '',
     age: '',
@@ -84,9 +86,7 @@ function App() {
               params: { question_size, syntax_size, group_id: groupId },
             })
 
-            // now destructure assignmentIds (array) from data
             const { questionArray, syntaxArray, assignmentIds } = data
-
             const ExplainComponent =
               groupId === GroupEnum.newline ? ExplainNewline : ExplainTab
 
@@ -97,7 +97,7 @@ function App() {
                 questionArray,
                 syntaxArray
               ),
-              assignmentIds,    // use the array directly
+              assignmentIds,
             }
           })
       )
@@ -148,6 +148,10 @@ function App() {
             surveyData={{
               ...surveyDataRef.current,
               ids: surveyDataRef.current.ids ?? [],
+              test_accuracy: surveyDataRef.current.test_accuracy ?? [],
+              durations: surveyDataRef.current.durations ?? [],
+              totalTime: surveyDataRef.current.totalTime ?? 0,
+              overallAccuracy: surveyDataRef.current.overallAccuracy ?? 0,
             }}
             assignmentIds={treatments.flatMap(t => t.assignmentIds)}
           />
