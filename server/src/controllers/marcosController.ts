@@ -122,7 +122,7 @@ export const createEntry: RequestHandler = async (req, res, next) => {
       if (assignmentIds.length > 0) {
         await tx.assignment.updateMany({
           where: { id: { in: assignmentIds } },
-          data: { completed: true },
+          data: { completed: true, abandoned: false },
         })
       }
 

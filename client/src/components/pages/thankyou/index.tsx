@@ -52,12 +52,6 @@ const ThankYouPage: React.FC<ThankYouPageProps> = ({
         Your input is valuable and helps us better understand how people interpret special character syntax in programming.
       </p>
 
-      <button
-        onClick={setPage}
-        className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded"
-      >
-        Back to Start
-      </button>
     </div>
   )
 }

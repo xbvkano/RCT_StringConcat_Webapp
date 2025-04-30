@@ -1,4 +1,3 @@
-// src/components/pages/questionScreen.tsx
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { KeyboardDisplay } from '../../../ultilities/keyboard'
 import {
@@ -29,35 +28,30 @@ const QuestionScreen: React.FC<QuestionProps> = ({
   attemptedSubmit,
   submitted,
 }) => {
-  // Protect against missing question
   if (!question) return null
 
-  // Local tokens state
   const [tokens, setTokens] = useState<string[]>([])
 
-  // Reset tokens when question changes
   useEffect(() => {
     setTokens([])
   }, [question.id])
 
-  // Figure out group & syntax from question.id
-  const [groupKey, syntaxText] = useMemo<[GroupKey | null, string | null]>(
-    () => {
-      const gid = question.id.slice(0, 2)
-      const sid = question.id.slice(4, 6)
-      let g: GroupKey | null = null
-      ;(Object.keys(groups) as GroupKey[]).forEach((k) => {
-        if (groups[k].groupId === gid) g = k
-      })
-      if (!g) return [null, null]
-      const cfg = groups[g] as { syntaxes: SyntaxConfig[] }
-      const entry = cfg.syntaxes.find((s) => s.id === sid)
-      return [g, entry?.text || null]
-    },
-    [question.id]
-  )
+  const [groupKey, syntaxText] = useMemo<[GroupKey | null, string | null]>(() => {
+    const gid = question.id.slice(0, 2)
+    const sid = question.id.slice(4, 6)
+    let g: GroupKey | null = null
+    for (const k of Object.keys(groups) as GroupKey[]) {
+      if (groups[k].groupId === gid) {
+        g = k
+        break
+      }
+    }
 
-  // Handle keyboard tokens
+    if (!g) return [null, null]
+    const entry = groups[g].syntaxes.find((s) => s.id === sid)
+    return [g, entry?.text || null]
+  }, [question.id])
+
   const handleKey = useCallback(
     (tok: string) => {
       if (submitted) return
@@ -78,7 +72,6 @@ const QuestionScreen: React.FC<QuestionProps> = ({
     [submitted, onChange, onNext, tokens.length]
   )
 
-  // Bind/unbind keyboard events
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (['1', '2', '3', '4'].includes(e.key)) handleKey(e.key)
@@ -89,7 +82,6 @@ const QuestionScreen: React.FC<QuestionProps> = ({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [handleKey])
 
-  // Render code snippet, showing visible tabs/newlines
   const rendered = useMemo(() => {
     if (syntaxText === '\n') {
       return question.text.split('\n').map((line, i) => (
@@ -111,42 +103,41 @@ const QuestionScreen: React.FC<QuestionProps> = ({
   }, [question.text, syntaxText])
 
   return (
-    <div>
-      <h1 className="text-4xl font-extrabold text-white text-center mb-4">
+    <div className="flex flex-col items-center justify-center w-full px-6 py-10 text-white">
+      <h1 className="text-4xl font-extrabold text-center mb-4">
         Experiment
       </h1>
-      <p className="text-white mb-6">
-        Question {current + 1}/{total}
+
+      <p className="mb-1 text-center">
+        Question {current + 1}/{total} — ID <code>{question.id}</code>
       </p>
-      <p className="text-gray-300 text-sm mb-6">
-        Treating{' '}
-        <code className="px-1 bg-gray-700 rounded">
-          {syntaxText === '\n'
-            ? <br />
-            : syntaxText === '\t'
-            ? '\u00A0\u00A0\u00A0\u00A0'
+
+      <h2 className="text-2xl text-white font-bold mb-2 mt-4 text-center">
+        {groupKey === 'newline' ? 'Newline syntax is:' : 'Tab syntax is:'}
+      </h2>
+      <div className="text-center text-white mb-4">
+        <code className="text-xl bg-gray-800 px-3 py-2 rounded inline-block">
+          {groupKey === 'newline' && syntaxText === '\n'
+            ? '↵ (newline)'
+            : groupKey === 'tab' && syntaxText === '\t'
+            ? '→ (tab)'
             : syntaxText}
-        </code>{' '}
-        as a{' '}
-        <strong className="font-bold underline">
-          {groupKey === 'newline' ? 'newline' : 'tab'}
-        </strong>
-        , how many{' '}
-        <strong className="font-bold underline">
-          {groupKey === 'newline' ? 'lines' : 'tabs'}
-        </strong>{' '}
-        will be printed?
-      </p>
+        </code>
+      </div>
+
       <div className="bg-gray-800 text-white px-4 py-3 rounded max-w-xl w-full mb-6 border border-gray-700 whitespace-pre-wrap">
         <code>{rendered}</code>
       </div>
+
       <div className="mb-4 p-2 border border-gray-600 rounded min-h-[4rem] font-mono whitespace-pre-wrap bg-gray-800 text-white max-w-xl w-full">
         {input || <span className="text-gray-500">Type your answer...</span>}
         <span className="inline-block w-1 h-6 bg-white animate-pulse align-bottom ml-1" />
       </div>
+
       <KeyboardDisplay onKey={handleKey} />
+
       {attemptedSubmit && input === '' && (
-        <p className="text-red-500 mt-2">Please enter a response.</p>
+        <p className="text-red-500 mt-2 text-center">Please enter a response.</p>
       )}
     </div>
   )

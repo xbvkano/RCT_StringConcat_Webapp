@@ -16,14 +16,12 @@ const TrainingPage: React.FC<TrainingPageProps> = ({
 }) => {
   const questions = trainingQuestions
 
-  // UI state
   const [started, setStarted] = useState(false)
   const [idx, setIdx] = useState(0)
   const [typed, setTyped] = useState('')
   const [attempted, setAttempted] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
 
-  // handle key presses
   const handleKey = useCallback(
     (token: string) => {
       if (token === 'DELETE') {
@@ -52,7 +50,6 @@ const TrainingPage: React.FC<TrainingPageProps> = ({
     [idx, questions.length, typed, showFeedback, setPage]
   )
 
-  // bind keyboard
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (['1','2','3','4'].includes(e.key)) handleKey(e.key)
@@ -78,23 +75,19 @@ const TrainingPage: React.FC<TrainingPageProps> = ({
     )
   }
 
-  // determine group from question ID prefix
   const prefix = current.id.slice(0, 2)
   const groupKey: 'newline' | 'tab' =
     prefix === trainingGroups.newline.groupId ? 'newline' : 'tab'
   const groupConfig = trainingGroups[groupKey]
 
-  // find which syntax text appears
   const syntaxUsed = groupConfig.syntaxes.find(s =>
     current.text.includes(s.text)
   )!.text
 
-  // count occurrences for correct answer
   const escaped = syntaxUsed.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
   const count = (current.text.match(new RegExp(escaped, 'g')) || []).length
   const correctAnswer = groupKey === 'newline' ? count + 1 : count
 
-  // prepare rendered output
   const actualChar = groupKey === 'newline' ? '\n' : '\t'
   const rendered = current.text.replace(
     new RegExp(escaped, 'g'),
@@ -113,22 +106,24 @@ const TrainingPage: React.FC<TrainingPageProps> = ({
           <p className="mb-1">
             Question {idx + 1}/{total} — ID <code>{current.id}</code>
           </p>
+
+          <h2 className="text-2xl text-white font-bold mb-2 mt-4 text-center">
+            {groupKey === 'newline' ? 'Newline syntax is:' : 'Tab syntax is:'}
+          </h2>
+          <div className="text-center text-white mb-4">
+            <code className="text-xl bg-gray-800 px-3 py-2 rounded inline-block">
+              {groupKey === 'newline' && syntaxUsed === '\n'
+                ? '↵ (newline)'
+                : groupKey === 'tab' && syntaxUsed === '\t'
+                ? '→ (tab)'
+                : syntaxUsed}
+            </code>
+          </div>
+
+
           <div className="bg-gray-800 p-4 rounded mb-4 max-w-xl w-full whitespace-pre-wrap">
             <code>{current.text}</code>
           </div>
-
-          <p className="text-gray-300 text-sm mb-6">
-            Treating{' '}
-            <code className="px-1 bg-gray-700 rounded">{syntaxUsed}</code> as a{' '}
-            <strong className="font-bold underline">
-              {groupKey === 'newline' ? 'newline' : 'tab'}
-            </strong>
-            , how many{' '}
-            <strong className="font-bold underline">
-              {groupKey === 'newline' ? 'lines' : 'tabs'}
-            </strong>{' '}
-            will be printed?
-          </p>
 
           <div className="mb-4 w-full max-w-xl">
             <div className="p-2 bg-gray-900 border border-gray-700 rounded min-h-[3rem] font-mono">

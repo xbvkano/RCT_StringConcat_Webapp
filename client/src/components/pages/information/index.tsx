@@ -3,17 +3,18 @@ import { PageKey, PAGES } from './../../../App'
 import { trainingGroups } from '../../ultilities/questionsTemplates'
 
 interface InfoPageProps {
-  setPage: (page: PageKey) => void
+  setPage: () => void,
+  backPage: () => void
 }
 
-const InfoPage: React.FC<InfoPageProps> = ({ setPage }) => {
+const InfoPage: React.FC<InfoPageProps> = ({ setPage, backPage }) => {
   return (
     <div className="flex flex-col h-full w-full items-center justify-between p-6">
       {/* Back button */}
       <div className="w-full flex justify-start mb-4">
         <button
           className="text-white text-xl px-3 py-1 rounded hover:bg-blue-700 hover:text-white transition-colors border border-white/20 shadow-sm"
-          onClick={() => setPage(PAGES.landing)}
+          onClick={() => backPage()}
         >
           ←
         </button>
@@ -79,7 +80,7 @@ const InfoPage: React.FC<InfoPageProps> = ({ setPage }) => {
       {/* Continue button */}
       <button
         className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded mt-10 mb-6 shadow-lg transition-all"
-        onClick={() => setPage(PAGES.explain)}
+        onClick={() => setPage()}
       >
         Start Training
       </button>

@@ -1,6 +1,6 @@
 // src/components/pages/ExplainPage.tsx
 import React from 'react'
-import { PageKey, PAGES } from './../../../App'
+import { PageKey, PAGES } from '../../../../App'
 import im1 from "/images/training_01.png"
 
 interface ExplainPageProps {
@@ -8,7 +8,7 @@ interface ExplainPageProps {
 }
 
 const examples = [
-  { src: im1, alt: 'question template' },
+  { src: im1, alt: 'Example of a training question' },
 ]
 
 export const ExplainPage: React.FC<ExplainPageProps> = ({ setPage }) => {
@@ -26,35 +26,31 @@ export const ExplainPage: React.FC<ExplainPageProps> = ({ setPage }) => {
 
       {/* Title */}
       <h1 className="text-4xl font-extrabold text-center mb-8 border-b border-gray-700 pb-2">
-        How to Interact with the Experiment
+        Overview of the Experiment
       </h1>
 
-      {/* Instructions */}
+      {/* Instructional Content */}
       <div className="max-w-2xl text-lg leading-relaxed space-y-6 mb-8 text-center">
         <p>
-          During the experiment, you will see small code snippets that contain special characters disguised in different syntaxes.
-          Your task is to figure out how many <strong>lines</strong> or <strong>tabs</strong> are created based on what you see.
+          In this study, we are exploring how people interpret special formatting symbols 
+          that appear in programming environments. You will interact with short code snippets 
+          that include subtle variations in how special characters are represented.
         </p>
 
         <p>
-          To keep the experience fast and smooth, we recommend placing one hand over the number keys
-          <code className="bg-gray-800 px-2 py-1 mx-1 rounded">1</code> through 
-          <code className="bg-gray-800 px-2 py-1 mx-1 rounded">4</code>,
-          and the other hand over the 
-          <code className="bg-gray-800 px-2 py-1 mx-1 rounded">Enter</code> key.
+          Your task is to analyze these snippets and respond with how many formatting effects 
+          (such as lines or tabs) you believe will be produced. This helps us better understand 
+          how syntax affects comprehension.
         </p>
 
         <p>
-          Think carefully about your answer, then type the number that matches your count and press <strong>Enter</strong> to submit.
+          The experiment includes a brief training session followed by a timed evaluation. 
+          During training, you'll get immediate feedback. In the final section, we’ll measure 
+          both your accuracy and speed.
         </p>
 
         <p>
-          If you accidentally press the wrong number, you can press
-          <code className="bg-gray-800 px-2 py-1 mx-1 rounded">Backspace</code> to erase your input before submitting.
-        </p>
-
-        <p>
-          Here's an example of how it looks during training:
+          No prior programming experience is required — just do your best!
         </p>
 
         {/* Example Image */}
@@ -66,10 +62,6 @@ export const ExplainPage: React.FC<ExplainPageProps> = ({ setPage }) => {
             </div>
           ))}
         </div>
-
-        <p>
-          Once you're comfortable, you'll move on to the main experiment where your accuracy and speed will be measured.
-        </p>
       </div>
 
       {/* Continue Button */}
@@ -77,7 +69,7 @@ export const ExplainPage: React.FC<ExplainPageProps> = ({ setPage }) => {
         onClick={() => setPage(PAGES.survey)}
         className="mt-6 py-2 px-6 font-semibold rounded shadow-md bg-blue-600 hover:bg-blue-700 transition-all text-white"
       >
-        Start
+        Begin Survey
       </button>
     </div>
   )

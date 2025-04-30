@@ -3,12 +3,13 @@ import { PageKey, PAGES, SurveyData } from './../../../App';
 import { ProgrammingLanguageMap }  from './../../../../../shared/languageOptions';
 
 interface SurveyPageProps {
-  setPage: (page: PageKey) => void;
+  setPage: () => void;
+  backPage: () => void;
   surveyData: SurveyData;
   setSurveyData: (data: SurveyData) => void;
 }
 
-const SurveyPage: React.FC<SurveyPageProps> = ({ setPage, surveyData, setSurveyData }) => {
+const SurveyPage: React.FC<SurveyPageProps> = ({ setPage, surveyData, setSurveyData, backPage }) => {
   const [form, setForm] = useState(surveyData);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
@@ -25,7 +26,7 @@ const SurveyPage: React.FC<SurveyPageProps> = ({ setPage, surveyData, setSurveyD
   const handleNext = () => {
     if (isValid) {
       setSurveyData(form);
-      setPage(PAGES.training); // or your next page
+      setPage(); // or your next page
     } else {
       setAttemptedSubmit(true);
     }
@@ -55,7 +56,7 @@ const SurveyPage: React.FC<SurveyPageProps> = ({ setPage, surveyData, setSurveyD
       <div className="w-full flex justify-start mb-4">
         <button
           className="text-white text-xl px-3 py-1 rounded hover:bg-blue-700 hover:text-white transition-colors border border-white/20 shadow-sm"
-          onClick={() => setPage(PAGES.explain)}
+          onClick={() => backPage()}
         >
           ←
         </button>

@@ -115,11 +115,12 @@ function App() {
       case PAGES.landing:
         return <LandingPage setPage={() => setPage(PAGES.info)} />
       case PAGES.info:
-        return <InfoPage setPage={() => setPage(PAGES.survey)} />
+        return <InfoPage setPage={() => setPage(PAGES.survey)} backPage={() => setPage(PAGES.landing)} />
       case PAGES.survey:
         return (
           <SurveyPage
             setPage={() => setPage(PAGES.treatment)}
+            backPage={() => setPage(PAGES.info)}
             surveyData={surveyDataRef.current}
             setSurveyData={data => {
               surveyDataRef.current = data
