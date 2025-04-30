@@ -25,6 +25,11 @@ const ExplainNewline: React.FC<ExplainNewlineProps> = ({ onNext }) => {
         </code>
       </div>
 
+      <p className="text-white text-md text-center max-w-xl mb-6">
+        The answer for above would be <code>3</code>, note that we only have 2 line breaks but every string starts with
+        a line. We want to know the total amount of rendered lines
+      </p>
+
       <button
         onClick={onNext}
         className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded shadow-md"

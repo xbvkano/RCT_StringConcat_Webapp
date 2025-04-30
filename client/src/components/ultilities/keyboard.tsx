@@ -8,9 +8,9 @@ interface KeyboardDisplayProps {
 export const KeyboardDisplay: React.FC<KeyboardDisplayProps> = ({ onKey }) => {
   const choices = ['1', '2', '3', '4']
 
-  const handleClick = (key: string) => {
-    onKey(key)
-  }
+  // const handleClick = (key: string) => {
+  //   onKey(key)
+  // }
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -29,7 +29,7 @@ export const KeyboardDisplay: React.FC<KeyboardDisplayProps> = ({ onKey }) => {
       {choices.map((choice) => (
         <button
           key={choice}
-          onClick={() => handleClick(choice)}
+          
           className="bg-blue-600 hover:bg-blue-700 text-white text-xl font-semibold py-3 px-6 rounded shadow transition-all"
         >
           {choice}
