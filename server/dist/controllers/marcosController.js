@@ -107,17 +107,17 @@ function parseLang(input) {
 }
 /**
  * POST /
- * Handles survey + experiment submission. Expects assignmentId for balancing.
+ * Handles survey + experiment submission. Expects assignmentIds for balancing.
 */
 var createEntry = function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var _a, assignmentId_1, yearsProgramming, age, sexInput, languageInput, email_1, ids_1, task_accuracy_1, durations_1, totalTime_1, overallAccuracy_1, parsedExperienceYears, parsedAge, experienceYears_1, safeAge_1, sexEnum_1, langEnum_1, entry, err_2;
+    var _a, assignmentIds_1, yearsProgramming, age, sexInput, languageInput, email_1, ids_1, task_accuracy_1, durations_1, totalTime_1, overallAccuracy_1, parsedExperienceYears, parsedAge, experienceYears_1, safeAge_1, sexEnum_1, langEnum_1, entry, err_2;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0:
                 _b.trys.push([0, 2, , 3]);
-                _a = req.body, assignmentId_1 = _a.assignmentId, yearsProgramming = _a.yearsProgramming, age = _a.age, sexInput = _a.sex, languageInput = _a.language, email_1 = _a.email, ids_1 = _a.ids, task_accuracy_1 = _a.task_accuracy, durations_1 = _a.durations, totalTime_1 = _a.totalTime, overallAccuracy_1 = _a.overallAccuracy;
-                if (!assignmentId_1) {
-                    res.status(400).json({ error: 'Missing assignmentId' });
+                _a = req.body, assignmentIds_1 = _a.assignmentIds, yearsProgramming = _a.yearsProgramming, age = _a.age, sexInput = _a.sex, languageInput = _a.language, email_1 = _a.email, ids_1 = _a.ids, task_accuracy_1 = _a.task_accuracy, durations_1 = _a.durations, totalTime_1 = _a.totalTime, overallAccuracy_1 = _a.overallAccuracy;
+                if (!assignmentIds_1) {
+                    res.status(400).json({ error: 'Missing assignmentIds' });
                     return [2 /*return*/];
                 }
                 parsedExperienceYears = parseInt(yearsProgramming, 10);
@@ -127,7 +127,7 @@ var createEntry = function (req, res, next) { return __awaiter(void 0, void 0, v
                 sexEnum_1 = parseSex(sexInput);
                 langEnum_1 = parseLang(languageInput);
                 console.log('📥 Creating entry with:', {
-                    assignmentId: assignmentId_1,
+                    assignmentIds: assignmentIds_1,
                     experienceYears: experienceYears_1,
                     safeAge: safeAge_1,
                     sexEnum: sexEnum_1,
@@ -159,12 +159,15 @@ var createEntry = function (req, res, next) { return __awaiter(void 0, void 0, v
                                     })];
                                 case 1:
                                     created = _a.sent();
-                                    return [4 /*yield*/, tx.assignment.update({
-                                            where: { id: assignmentId_1 },
-                                            data: { completed: true },
+                                    if (!(assignmentIds_1.length > 0)) return [3 /*break*/, 3];
+                                    return [4 /*yield*/, tx.assignment.updateMany({
+                                            where: { id: { in: assignmentIds_1 } },
+                                            data: { completed: true, abandoned: false },
                                         })];
                                 case 2:
                                     _a.sent();
+                                    _a.label = 3;
+                                case 3:
                                     perQuestionData = ids_1.map(function (questionId, index) { return ({
                                         question_id: parseInt(questionId, 10),
                                         user_id: created.id,
@@ -174,7 +177,7 @@ var createEntry = function (req, res, next) { return __awaiter(void 0, void 0, v
                                     return [4 /*yield*/, tx.marcos_per_question.createMany({
                                             data: perQuestionData,
                                         })];
-                                case 3:
+                                case 4:
                                     _a.sent();
                                     return [2 /*return*/, created];
                             }
@@ -195,7 +198,7 @@ var createEntry = function (req, res, next) { return __awaiter(void 0, void 0, v
 }); };
 exports.createEntry = createEntry;
 var getNextGroup = function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var question_size_raw, syntax_size_raw, group_id_raw, question_size_1, syntax_size_1, group_id_1, _a, adjustedQuestionArray, adjustedSyntaxArray, assignmentId, err_3;
+    var question_size_raw, syntax_size_raw, group_id_raw, question_size_1, syntax_size_1, group_id_1, _a, adjustedQuestionArray, adjustedSyntaxArray, assignmentIds, err_3;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0:
@@ -218,7 +221,7 @@ var getNextGroup = function (req, res, next) { return __awaiter(void 0, void 0, 
                     return [2 /*return*/];
                 }
                 return [4 /*yield*/, prisma.$transaction(function (tx) { return __awaiter(void 0, void 0, void 0, function () {
-                        var questionArray, syntaxArray, abandonedAssignment, newLatinCounter, assignmentId, maxLatinCounter, lastLatinCounter, newAssignment, adjustedQuestionArray, adjustedSyntaxArray;
+                        var questionArray, syntaxArray, abandonedAssignment, newLatinCounter, assignmentIds, maxLatinCounter, lastLatinCounter, newAssignment, adjustedQuestionArray, adjustedSyntaxArray;
                         var _a;
                         return __generator(this, function (_b) {
                             switch (_b.label) {
@@ -249,7 +252,7 @@ var getNextGroup = function (req, res, next) { return __awaiter(void 0, void 0, 
                                 case 3:
                                     _b.sent();
                                     newLatinCounter = abandonedAssignment.latinCounter;
-                                    assignmentId = abandonedAssignment.id;
+                                    assignmentIds = abandonedAssignment.id;
                                     return [3 /*break*/, 7];
                                 case 4: return [4 /*yield*/, tx.assignment.aggregate({
                                         where: { group: group_id_1 },
@@ -271,7 +274,7 @@ var getNextGroup = function (req, res, next) { return __awaiter(void 0, void 0, 
                                         })];
                                 case 6:
                                     newAssignment = _b.sent();
-                                    assignmentId = newAssignment.id;
+                                    assignmentIds = newAssignment.id;
                                     _b.label = 7;
                                 case 7:
                                     adjustedQuestionArray = questionArray.map(function (val) { return ((val + newLatinCounter - 1) % question_size_1) + 1; });
@@ -279,17 +282,17 @@ var getNextGroup = function (req, res, next) { return __awaiter(void 0, void 0, 
                                     return [2 /*return*/, {
                                             adjustedQuestionArray: adjustedQuestionArray,
                                             adjustedSyntaxArray: adjustedSyntaxArray,
-                                            assignmentId: assignmentId,
+                                            assignmentIds: assignmentIds,
                                         }];
                             }
                         });
                     }); })];
             case 1:
-                _a = _b.sent(), adjustedQuestionArray = _a.adjustedQuestionArray, adjustedSyntaxArray = _a.adjustedSyntaxArray, assignmentId = _a.assignmentId;
+                _a = _b.sent(), adjustedQuestionArray = _a.adjustedQuestionArray, adjustedSyntaxArray = _a.adjustedSyntaxArray, assignmentIds = _a.assignmentIds;
                 res.json({
                     questionArray: adjustedQuestionArray,
                     syntaxArray: adjustedSyntaxArray,
-                    assignmentId: assignmentId,
+                    assignmentIds: assignmentIds,
                 });
                 return [3 /*break*/, 3];
             case 2:
