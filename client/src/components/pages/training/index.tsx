@@ -67,7 +67,7 @@ const TrainingPage: React.FC<TrainingPageProps> = ({
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (['1','2','3','4'].includes(e.key)) handleKey(e.key)
+      if (['1', '2', '3', '4'].includes(e.key)) handleKey(e.key)
       else if (e.key === 'Enter') handleKey('ENTER')
     }
     window.addEventListener('keydown', onKeyDown)
@@ -111,8 +111,9 @@ const TrainingPage: React.FC<TrainingPageProps> = ({
               : 'How many tabs will be printed?'}
           </p>
 
+          {/* ✅ Show raw syntax (not rendered version) */}
           <div className="bg-gray-800 p-4 rounded mb-4 max-w-xl w-full whitespace-pre-wrap">
-            <code>{rendered}</code>
+            <code>{current.text}</code>
           </div>
 
           <KeyboardDisplay onKey={handleKey} />
