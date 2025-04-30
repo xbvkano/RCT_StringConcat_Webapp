@@ -1,5 +1,4 @@
 import React from 'react'
-import { PageKey, PAGES } from './../../../App'
 import { trainingGroups } from '../../ultilities/questionsTemplates'
 
 interface InfoPageProps {

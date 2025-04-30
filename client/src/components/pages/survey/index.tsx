@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PageKey, PAGES, SurveyData } from './../../../App';
+import { SurveyData } from './../../../App';
 import { ProgrammingLanguageMap }  from './../../../../../shared/languageOptions';
 
 interface SurveyPageProps {

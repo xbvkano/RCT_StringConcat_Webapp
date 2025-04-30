@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import axios from 'axios'
 import CenteredPaper from './components/paper'
 import LandingPage from './components/pages/landing'

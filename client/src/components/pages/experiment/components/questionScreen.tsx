@@ -4,7 +4,6 @@ import {
   groups,
   GroupKey,
   QuestionItem,
-  SyntaxConfig,
 } from '../../../ultilities/questionsTemplates'
 
 export interface QuestionProps {

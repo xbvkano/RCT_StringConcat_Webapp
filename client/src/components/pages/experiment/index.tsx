@@ -25,7 +25,6 @@ export interface ExperimentPageProps {
 
 const ExperimentPage: React.FC<ExperimentPageProps> = ({
   setPage,
-  surveyData,
   experimentDataRef,
   idsRef,
   durationsRef,

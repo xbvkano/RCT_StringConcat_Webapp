@@ -20,7 +20,6 @@ interface ThankYouPageProps {
 const ThankYouPage: React.FC<ThankYouPageProps> = ({
   surveyData,
   assignmentIds,
-  setPage,
 }) => {
   useEffect(() => {
     ;(async () => {
