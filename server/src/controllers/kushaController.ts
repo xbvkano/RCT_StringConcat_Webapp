@@ -37,6 +37,9 @@ function parseLang(input: string): ProgrammingLanguage {
  * Handles survey + experiment submission for Kusha_data (no assignmentIds).
  */
 export const createKushaEntry: RequestHandler = async (req, res, next) => {
+
+  console.log('📥 Received Kusha entry:', req.body)
+
   try {
     const {
       yearsProgramming,
