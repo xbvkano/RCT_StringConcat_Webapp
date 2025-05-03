@@ -58,3 +58,30 @@ model Marcos_per_question {
   result          Boolean
   time            Int
 }
+
+
+// Kusha data model
+
+
+model Kusha_data {
+  id               Int                  @id @default(autoincrement())
+  experience_years Int
+  age              Int
+  sex              Sex
+  language         ProgrammingLanguage
+  email            String?              // optional
+  accuracy         Float
+  task_accuracy    Boolean[]
+  task_ids         String[]
+  total_time       Int                  
+  per_task_time    Int[]
+  created_at       DateTime             @default(now())
+}
+
+model Kusha_per_question {
+  id              Int                   @id @default(autoincrement())
+  question_id     Int
+  user_id         Int
+  result          Boolean
+  time            Int
+}
